@@ -12,13 +12,13 @@
       <em class="display--emphasis">tuned.</em>
     </h1>
     <p class="body-lg hero__sub">
-      Tactile painted-wall canvas, fine digital noise grain, official Skit technical line icons, engineered type.
+      Tactile painted-wall canvas, fine digital noise grain, official Iconoir 1600+ SVG icon system, engineered type.
     </p>
     <div class="hero__cta">
       <Button href="#components" size="lg">Explore Components</Button>
       <Button href="https://github.com/Joelorbit/Mytheme" target="_blank" external variant="secondary" size="lg">GitHub</Button>
     </div>
-    <p class="mono-xs hero__meta">Eyu palette · Skit glyph pack · 8pt grid · fine digital noise</p>
+    <p class="mono-xs hero__meta">Eyu palette · Iconoir 1600+ glyph pack · 24px grid · 1.5 stroke</p>
   </div>
 
   <div class="specimen" aria-hidden="true">
@@ -49,7 +49,7 @@
     </div>
     <div class="specimen__panel specimen__panel--icons">
       <div class="specimen__row">
-        <span class="mono-xs">glyph pack — stroke 1.5</span>
+        <span class="mono-xs">Iconoir — stroke 1.5</span>
         <span class="mono-xs">24px grid</span>
       </div>
       <div class="specimen__icons">

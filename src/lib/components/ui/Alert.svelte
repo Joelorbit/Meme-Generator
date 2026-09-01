@@ -18,9 +18,9 @@
 
   const iconName = $derived(
     type === 'success' ? 'badge-check' :
-    type === 'warning' ? 'triangle' :
-    type === 'danger' ? 'circle' :
-    'bell'
+    type === 'warning' ? 'warning-triangle' :
+    type === 'danger' ? 'xmark-circle' :
+    'info-circle'
   );
 </script>
 

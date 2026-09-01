@@ -311,18 +311,18 @@ export const ramp = [
 ] as const;
 
 export const iconRow = [
-  'sparkles',
-  'orbit',
-  'chip',
+  'sparks',
+  'planet-sat',
+  'electronics-chip',
   'cube',
-  'bot',
-  'zap',
-  'square-terminal',
+  'cpu',
+  'flash',
+  'terminal-tag',
   'code',
   'database',
   'badge-check',
-  'cpu',
   'terminal',
   'palette',
   'compass',
+  'sun-light',
 ] as const;

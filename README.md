@@ -42,6 +42,42 @@ Use semantic roles in components and application code. Use raw palette values on
 
 The token file preserves the original Eyu identity and aliases, so existing consumers can migrate incrementally. New work should prefer the semantic layer over legacy names such as `--accent`, `--surface`, and `--line`.
 
+
+## Icon System (Iconoir)
+
+EyuTheme uses **[Iconoir](https://iconoir.com)** as its official icon library — an open-source library with 1600+ unique SVG icons, designed on a precision 24×24 pixels grid with 1.5px stroke weight.
+
+Installable directly via standard package managers:
+
+```bash
+npm i iconoir
+# or
+yarn add iconoir
+# or
+pnpm add iconoir
+# or
+bun add iconoir
+```
+
+### Usage in Svelte
+
+```svelte
+<script lang="ts">
+  import { Icon } from "$lib";
+</script>
+
+<!-- Standard Regular Icon -->
+<Icon name="spark" size={24} strokeWidth={1.5} />
+
+<!-- Solid Variant -->
+<Icon name="adobe-illustrator" size={24} solid />
+
+<!-- Responsive & Custom Classes -->
+<Icon name="nav-arrow-down" size={18} class="text-accent" />
+```
+
+All 1671 Iconoir icons (1383 regular + 288 solid) and common aliases (such as `chevron-down`, `sun`, `moon-star`, `sparkles`, `x`, `trash-2`, `check`) are fully typed with TypeScript autocompletion and zero runtime overhead.
+
 ## Themes
 
 The system preserves the original named presets, including Eyu Charcoal, Cyber Olive, Solar Ochre, Emerald Sage, Terracotta Rust, Indigo Velvet, Crimson Obsidian, Monochrome Slate, Amber Bronze, Copper Oxide, Plum Basalt, Tobacco Leather, Moss Stone, Midnight Navy, Raw Umber, Burnt Sienna, Sage Titanium, Espresso Roast, Dune Khaki, Graphite Violet, Chalcedony Blue, Warm Basalt, Cypress Pine, and Eyu Light. Every preset has an explicit companion light canvas in `src/lib/tokens.css`; the dark selector remains the source of truth for its dark expression. The landing cockpit intentionally opens on the curated Moss Stone pair with a circuit background texture, while the complete catalog remains available through the exported `ThemePicker` component and theme controller for consuming applications.

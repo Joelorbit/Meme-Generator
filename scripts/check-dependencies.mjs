@@ -32,4 +32,11 @@ try {
   process.exit(1);
 }
 
-console.log('Dependency preflight passed.');
+const registryPath = join(root, "src", "lib", "icons", "registry.ts");
+if (!existsSync(registryPath)) {
+  console.log("Generating Iconoir icon registry...");
+  const { execSync } = await import("node:child_process");
+  execSync("node scripts/generate-icons.mjs", { stdio: "inherit", cwd: root });
+}
+
+console.log("Dependency preflight passed.");

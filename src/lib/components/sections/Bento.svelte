@@ -41,11 +41,11 @@
     <article id="icons" class="tile tile--icons">
       <div class="tile__head">
         <span class="tile__idx mono-xs">04</span>
-        <span class="mono-xs tile__count">40 glyphs</span>
+        <span class="mono-xs tile__count">1671 glyphs</span>
       </div>
-      <h3 class="heading heading-sm tile__title">One icon voice</h3>
+      <h3 class="heading heading-sm tile__title">Iconoir System</h3>
       <p class="body-sm tile__copy">
-        Square caps, miter joins, 1.5 weight. A single primitive, named not copied.
+        1600+ open-source SVG icons on a 24x24 grid with 1.5px stroke weight. A single typed primitive.
       </p>
       <div class="tile__glyphs">
         {#each iconRow as name, i}

@@ -1,57 +1,133 @@
 <script lang="ts">
-  import Badge from '../ui/Badge.svelte';
-  import Button from '../ui/Button.svelte';
-  import Input from '../ui/Input.svelte';
-  import Icon from '../primitives/Icon.svelte';
-  import type { IconName } from '../primitives/Icon.svelte';
+  import Badge from "../ui/Badge.svelte";
+  import Button from "../ui/Button.svelte";
+  import Input from "../ui/Input.svelte";
+  import Icon from "../primitives/Icon.svelte";
+  import {
+    iconoirRegularNames,
+    iconoirSolidNames,
+    iconoirCategories,
+    iconoirTotalCount,
+    iconoirRegularCount,
+    iconoirSolidCount,
+    getIconoirSvg,
+    resolveIconName,
+    type IconCategoryKey,
+    type IconName,
+  } from "../../icons";
 
-  const skitIcons: IconName[] = [
-    'activity', 'arrow-down', 'arrow-left', 'arrow-right', 'arrow-up', 'arrow-up-right',
-    'badge-check', 'bell', 'book', 'book-open', 'bot', 'calendar', 'card', 'chart-pie',
-    'check', 'chevron-down', 'chevron-left', 'chevron-right', 'chevrons-up-down', 'chevron-up',
-    'chip', 'circle', 'clock', 'code', 'command', 'copy', 'credit-card', 'cube', 'download',
-    'ellipsis', 'eye', 'file', 'folder', 'frame', 'github', 'globe', 'heart', 'layers',
-    'life-buoy', 'link', 'linkedin', 'log-out', 'mail', 'map', 'map-pin', 'menu', 'minus',
-    'moon-star', 'orbit', 'panel-left', 'plus', 'search', 'send', 'settings-2', 'share',
-    'shield', 'signal', 'sparkles', 'square-terminal', 'sun', 'terminal', 'trash-2',
-    'triangle', 'upload', 'user', 'x', 'zap'
-  ];
-
-  let searchQuery = $state<string>('');
+  let searchQuery = $state<string>("");
+  let selectedCategory = $state<IconCategoryKey>("all");
   let iconSize = $state<number>(24);
   let strokeWidth = $state<number>(1.5);
-  let selectedIcon = $state<IconName>('sparkles');
-  let copiedStatus = $state<string>('');
+  let isSolid = $state<boolean>(false);
+  let selectedIcon = $state<string>("spark");
+  let copiedStatus = $state<string>("");
+
+  // Pagination / Chunking for 60fps rendering of 1600+ icons
+  let currentPage = $state<number>(1);
+  const pageSize = 96;
+
+  // Change category handler
+  function setCategory(cat: IconCategoryKey) {
+    selectedCategory = cat;
+    currentPage = 1;
+    if (cat === "solid") {
+      isSolid = true;
+    }
+  }
+
+  // Active icon list based on category & search
+  let baseIcons = $derived.by(() => {
+    if (selectedCategory === "solid" || isSolid) {
+      return iconoirSolidNames;
+    }
+    if (selectedCategory === "all") {
+      return iconoirRegularNames;
+    }
+    return iconoirCategories[selectedCategory]?.icons || iconoirRegularNames;
+  });
 
   let filteredIcons = $derived.by(() => {
-    if (!searchQuery.trim()) return skitIcons;
     const q = searchQuery.toLowerCase().trim();
-    return skitIcons.filter((i) => i.toLowerCase().includes(q));
+    if (!q) return baseIcons;
+    return baseIcons.filter((name) => name.toLowerCase().includes(q));
+  });
+
+  let totalPages = $derived(Math.max(1, Math.ceil(filteredIcons.length / pageSize)));
+
+  let paginatedIcons = $derived.by(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredIcons.slice(start, start + pageSize);
   });
 
   function copyText(text: string, type: string) {
-    navigator.clipboard.writeText(text);
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
     copiedStatus = type;
     setTimeout(() => {
-      copiedStatus = '';
+      copiedStatus = "";
     }, 2000);
   }
 
-  function getSvelteSnippet(name: IconName) {
+  function getSvelteSnippet(name: string, solid: boolean) {
+    if (solid) {
+      return `<Icon name="${name}" size={${iconSize}} solid />`;
+    }
     return `<Icon name="${name}" size={${iconSize}} strokeWidth={${strokeWidth}} />`;
   }
+
+  function getRawSvg(name: string, solid: boolean) {
+    const inner = getIconoirSvg(name, solid) || "";
+    if (solid) {
+      return `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+    }
+    return `<svg width="24" height="24" stroke-width="1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+  }
+
+  const categoryEntries = (Object.keys(iconoirCategories) as IconCategoryKey[]).map((key) => ({
+    key,
+    ...iconoirCategories[key],
+    count: key === "all" ? iconoirTotalCount : iconoirCategories[key].icons.length,
+  }));
 </script>
 
 <section id="icons" class="styleguide shell">
   <div class="styleguide__header">
     <div class="styleguide__badge-row">
-      <Badge tone="accent">Skit Technical Glyph Pack</Badge>
-      <span class="mono-xs badge-count">{skitIcons.length} Glyphs</span>
+      <Badge tone="accent">Iconoir Open-Source Library</Badge>
+      <span class="mono-xs badge-count">{iconoirTotalCount} Glyphs ({iconoirRegularCount} Regular + {iconoirSolidCount} Solid)</span>
+      <a
+        href="https://iconoir.com"
+        target="_blank"
+        rel="noreferrer"
+        class="mono-xs iconoir-link"
+      >
+        iconoir.com →
+      </a>
     </div>
-    <h2 class="heading heading-lg">Official Skit Technical Icon System</h2>
+    <h2 class="heading heading-lg">Official Iconoir Icon System</h2>
     <p class="body-lg styleguide__desc">
-      Precision 24×24 grid, 1.5px stroke weight, square caps & miter joins restyled in EyuTaste voice.
+      Iconoir is an open-source library with 1600+ unique SVG icons, designed on a precision 24×24 pixels grid. Fully typed, zero-runtime overhead, and available via the <code>iconoir</code> npm package.
     </p>
+  </div>
+
+  <!-- Category Filter Pills -->
+  <div class="category-scroll">
+    <div class="category-pills">
+      {#each categoryEntries as cat}
+        <button
+          type="button"
+          class="category-pill"
+          class:active={selectedCategory === cat.key}
+          onclick={() => setCategory(cat.key)}
+        >
+          <span>{cat.label}</span>
+          <span class="pill-count">{cat.count}</span>
+        </button>
+      {/each}
+    </div>
   </div>
 
   <!-- Studio Controls -->
@@ -59,9 +135,10 @@
     <div class="controls-grid">
       <div class="search-box">
         <Input
-          placeholder="Search Skit technical icons..."
+          placeholder="Search 1600+ Iconoir icons (e.g. arrow, settings, mail, user, check)..."
           id="icon-search"
           bind:value={searchQuery}
+          oninput={() => (currentPage = 1)}
         />
       </div>
 
@@ -77,8 +154,28 @@
           <div class="slider-label">
             <span class="caption">Stroke: {strokeWidth}px</span>
           </div>
-          <input type="range" min="1.0" max="3.0" step="0.25" bind:value={strokeWidth} class="range-input" />
+          <input
+            type="range"
+            min="1.0"
+            max="3.0"
+            step="0.25"
+            bind:value={strokeWidth}
+            disabled={isSolid}
+            class="range-input"
+          />
         </div>
+
+        <button
+          type="button"
+          class="variant-toggle"
+          class:active={isSolid}
+          onclick={() => {
+            isSolid = !isSolid;
+            currentPage = 1;
+          }}
+        >
+          <span class="mono-xs">{isSolid ? "Solid" : "Regular"}</span>
+        </button>
       </div>
     </div>
   </div>
@@ -87,12 +184,14 @@
   {#if selectedIcon}
     <div class="inspector-bar">
       <div class="inspector-preview">
-        <div class="inspector-icon-wrap">
-          <Icon name={selectedIcon} size={36} strokeWidth={strokeWidth} />
+        <div class="inspector-icon-wrap" class:solid-wrap={isSolid}>
+          <Icon name={selectedIcon} size={36} strokeWidth={strokeWidth} solid={isSolid} />
         </div>
         <div class="inspector-info">
           <span class="heading-sm mono">{selectedIcon}</span>
-          <span class="mono-xs" style="color:var(--text-muted)">24×24 Grid · {strokeWidth}px Stroke</span>
+          <span class="mono-xs" style="color:var(--text-muted)">
+            24×24 Grid · {isSolid ? "Solid Variant" : strokeWidth + "px Stroke"} · <code>npm i iconoir</code>
+          </span>
         </div>
       </div>
 
@@ -100,26 +199,63 @@
         <Button
           variant="secondary"
           size="sm"
-          onclick={() => copyText(getSvelteSnippet(selectedIcon), 'Svelte Code Copied!')}
+          onclick={() => copyText(getSvelteSnippet(selectedIcon, isSolid), "Svelte Code Copied!")}
         >
           <Icon name="code" size={14} />
-          {copiedStatus === 'Svelte Code Copied!' ? 'Copied Svelte!' : 'Copy Svelte'}
+          {copiedStatus === "Svelte Code Copied!" ? "Copied Svelte!" : "Copy <Icon />"}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onclick={() => copyText(getRawSvg(selectedIcon, isSolid), "Raw SVG Copied!")}
+        >
+          <Icon name="page" size={14} />
+          {copiedStatus === "Raw SVG Copied!" ? "Copied SVG!" : "Copy SVG"}
         </Button>
         <Button
           variant="primary"
           size="sm"
-          onclick={() => copyText(selectedIcon, 'Icon Name Copied!')}
+          onclick={() => copyText(selectedIcon, "Icon Name Copied!")}
         >
           <Icon name="copy" size={14} />
-          {copiedStatus === 'Icon Name Copied!' ? 'Copied Name!' : 'Copy Name'}
+          {copiedStatus === "Icon Name Copied!" ? "Copied Name!" : "Copy Name"}
         </Button>
       </div>
     </div>
   {/if}
 
+  <!-- Stats & Result Counter -->
+  <div class="results-bar">
+    <span class="mono-xs" style="color:var(--text-muted)">
+      Showing {paginatedIcons.length} of {filteredIcons.length} icons
+      {#if searchQuery} for "{searchQuery}"{/if}
+    </span>
+    {#if totalPages > 1}
+      <div class="pagination-controls">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage <= 1}
+          onclick={() => (currentPage = Math.max(1, currentPage - 1))}
+        >
+          <Icon name="nav-arrow-left" size={14} /> Prev
+        </Button>
+        <span class="mono-xs page-indicator">{currentPage} / {totalPages}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={currentPage >= totalPages}
+          onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
+        >
+          Next <Icon name="nav-arrow-right" size={14} />
+        </Button>
+      </div>
+    {/if}
+  </div>
+
   <!-- Icon Grid -->
   <div class="icon-grid">
-    {#each filteredIcons as name}
+    {#each paginatedIcons as name}
       <button
         class="icon-card"
         class:selected={selectedIcon === name}
@@ -127,7 +263,7 @@
         title={name}
       >
         <div class="icon-frame">
-          <Icon name={name} size={iconSize} strokeWidth={strokeWidth} />
+          <Icon name={name} size={iconSize} strokeWidth={strokeWidth} solid={isSolid} />
         </div>
         <span class="mono-xs icon-name">{name}</span>
       </button>
@@ -137,7 +273,39 @@
   {#if filteredIcons.length === 0}
     <div class="empty-icons">
       <Icon name="search" size={32} />
-      <p class="body-md">No icons matching "{searchQuery}"</p>
+      <p class="body-md">No icons matching "{searchQuery}" in {iconoirCategories[selectedCategory]?.label || "selected category"}</p>
+      <Button variant="secondary" size="sm" onclick={() => { searchQuery = ""; selectedCategory = "all"; }}>
+        Reset Filters
+      </Button>
+    </div>
+  {/if}
+
+  <!-- Bottom Pagination if multi-page -->
+  {#if totalPages > 1 && paginatedIcons.length > 0}
+    <div class="bottom-pagination">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={currentPage <= 1}
+        onclick={() => {
+          currentPage = Math.max(1, currentPage - 1);
+          document.getElementById("icons")?.scrollIntoView({ behavior: "smooth" });
+        }}
+      >
+        <Icon name="nav-arrow-left" size={14} /> Previous 96 icons
+      </Button>
+      <span class="mono-xs">Page {currentPage} of {totalPages}</span>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={currentPage >= totalPages}
+        onclick={() => {
+          currentPage = Math.min(totalPages, currentPage + 1);
+          document.getElementById("icons")?.scrollIntoView({ behavior: "smooth" });
+        }}
+      >
+        Next 96 icons <Icon name="nav-arrow-right" size={14} />
+      </Button>
     </div>
   {/if}
 </section>
@@ -160,6 +328,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    flex-wrap: wrap;
   }
 
   .badge-count {
@@ -170,9 +339,72 @@
     border: 1px solid var(--line-soft);
   }
 
+  .iconoir-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .iconoir-link:hover {
+    text-decoration: underline;
+  }
+
   .styleguide__desc {
     color: var(--text-secondary);
-    max-width: 60ch;
+    max-width: 68ch;
+  }
+
+  .styleguide__desc code {
+    font-family: var(--font-mono, monospace);
+    background: var(--surface-elevated);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-soft);
+    color: var(--accent);
+  }
+
+  .category-scroll {
+    overflow-x: auto;
+    padding-bottom: var(--space-2);
+  }
+
+  .category-pills {
+    display: flex;
+    gap: var(--space-2);
+    min-width: max-content;
+  }
+
+  .category-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-soft);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--dur-2) var(--ease-standard);
+  }
+
+  .category-pill:hover {
+    border-color: var(--line-strong);
+    color: var(--text-primary);
+  }
+
+  .category-pill.active {
+    background: var(--surface-elevated);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .pill-count {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    background: var(--surface-pressed);
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
   }
 
   .controls-card {
@@ -192,7 +424,7 @@
     align-items: center;
   }
 
-  @media (max-width: 800px) {
+  @media (max-width: 860px) {
     .controls-grid {
       grid-template-columns: 1fr;
     }
@@ -202,13 +434,14 @@
     display: flex;
     gap: var(--space-5);
     align-items: center;
+    flex-wrap: wrap;
   }
 
   .slider-item {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    min-width: 130px;
+    min-width: 120px;
   }
 
   .slider-label {
@@ -220,6 +453,30 @@
   .range-input {
     accent-color: var(--accent);
     cursor: pointer;
+  }
+
+  .variant-toggle {
+    display: grid;
+    place-items: center;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-strong);
+    background: var(--surface-elevated);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--dur-2) var(--ease-standard);
+  }
+
+  .variant-toggle:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+
+  .variant-toggle.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+    font-weight: 600;
   }
 
   .inspector-bar {
@@ -243,12 +500,16 @@
   .inspector-icon-wrap {
     display: grid;
     place-items: center;
-    width: 52px;
-    height: 52px;
+    width: 54px;
+    height: 54px;
     background: var(--surface);
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-md);
     color: var(--accent);
+  }
+
+  .solid-wrap {
+    background: var(--surface-pressed);
   }
 
   .inspector-info {
@@ -260,6 +521,27 @@
   .inspector-actions {
     display: flex;
     gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .results-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-inline: var(--space-1);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .page-indicator {
+    color: var(--text-muted);
+    padding-inline: var(--space-2);
   }
 
   .icon-grid {
@@ -307,6 +589,8 @@
     text-align: center;
     word-break: break-all;
     font-size: 0.72rem;
+    max-width: 100%;
+    padding-inline: 4px;
   }
 
   .empty-icons {
@@ -317,5 +601,13 @@
     padding: var(--space-10);
     color: var(--text-muted);
     gap: var(--space-3);
+  }
+
+  .bottom-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-4);
+    padding-block: var(--space-4);
   }
 </style>

@@ -10,7 +10,8 @@
     "build": "vite build",
     "precheck": "node scripts/check-dependencies.mjs",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:icons": "node scripts/generate-icons.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
@@ -21,9 +22,9 @@
     "vite": "^6.0.0"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.30.0",
     "@tailwindcss/vite": "^4.3.3",
     "bits-ui": "^2.19.0",
+    "iconoir": "^7.12.1",
     "tailwindcss": "^4.3.3"
   }
 }
