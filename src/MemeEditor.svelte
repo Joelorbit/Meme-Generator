@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { fabric } from 'fabric';
-  import { Square, Columns, LayoutList, Layers, Download, Copy, RefreshCw, Upload, Bold, Italic, Type, AlignLeft, AlignCenter, AlignRight, Search, Plus, Trash2, Image, Dices, Sparkles, Sticker, ExternalLink, ArrowUp, ArrowDown } from '@lucide/svelte';
+  import { Square, Columns, LayoutList, Layers, Download, Copy, RefreshCw, Upload, Bold, Italic, Type, AlignLeft, AlignCenter, AlignRight, Search, Plus, Trash2, Image, Dices, Sparkles, Sticker, ExternalLink, ArrowUp, ArrowDown, X } from '@lucide/svelte';
   import { pureBlankTemplates, localTemplates, curatedMemes, fetchAllInitialBlankTemplates, fetchRedditMemes } from './lib/templatesData';
   import type { MemeTemplate } from './lib/templatesData';
 
@@ -807,33 +807,81 @@
   <section class="studio-workspace">
     <!-- Center Canvas Area -->
     <div class="canvas-viewport">
-      <div class="canvas-frame">
-        <canvas bind:this={canvasEl}></canvas>
-
+      <!-- Top Context Bar (OUTSIDE the canvas - Zero Covering) -->
+      <div class="canvas-context-bar" class:has-selection={isObjectSelected} class:is-wide={layoutMode === 'split-h'} aria-label="Selected element actions">
         {#if isObjectSelected}
-          <!-- Canvas Top Selection Pill for instant edit/delete -->
-          <div class="canvas-selection-badge">
-            <span class="selection-pill-type">
-              {isImageSelected ? 'Image / Sticker' : isTextSelected ? 'Text Caption' : 'Layer Selected'}
-            </span>
-            <div class="selection-pill-actions">
-              <button class="pill-action-btn danger" onclick={deleteSelected} title="Delete Selected Layer (Del / Backspace)">
-                <Trash2 size={12} />
-                <span>Delete</span>
-              </button>
-              <button class="pill-action-btn" onclick={duplicateSelected} title="Duplicate Selected (Ctrl+D)">
-                <Copy size={12} />
-                <span>Duplicate</span>
-              </button>
-              {#if isImageSelected}
-                <button class="pill-action-btn" onclick={flipSelected} title="Flip Horizontally">
-                  <RefreshCw size={12} />
-                  <span>Flip</span>
-                </button>
+          <div class="context-group">
+            <span class="context-badge">
+              {#if isTextSelected}
+                <Type size={13} />
+                <span>Text Caption</span>
+              {:else if isImageSelected}
+                <Sticker size={13} />
+                <span>Image / Sticker</span>
+              {:else}
+                <Layers size={13} />
+                <span>Selected Element</span>
               {/if}
-            </div>
+            </span>
+
+            <div class="context-divider"></div>
+
+            <button class="context-action-btn danger" onclick={deleteSelected} title="Delete Selected (Del / Backspace)">
+              <Trash2 size={13} />
+              <span>Delete</span>
+            </button>
+
+            <button class="context-action-btn" onclick={duplicateSelected} title="Duplicate Selected (Ctrl+D)">
+              <Copy size={13} />
+              <span>Duplicate</span>
+            </button>
+
+            <div class="context-divider"></div>
+
+            <button class="context-action-btn icon-only" onclick={bringForward} title="Bring to Front">
+              <ArrowUp size={13} />
+            </button>
+
+            <button class="context-action-btn icon-only" onclick={sendBackward} title="Send Backward">
+              <ArrowDown size={13} />
+            </button>
+
+            {#if isImageSelected}
+              <button class="context-action-btn" onclick={flipSelected} title="Flip Horizontally">
+                <RefreshCw size={13} />
+                <span>Flip</span>
+              </button>
+            {/if}
+          </div>
+
+          <button
+            class="context-dismiss-btn"
+            onclick={() => { canvas.discardActiveObject(); canvas.requestRenderAll(); }}
+            title="Deselect (Escape)"
+          >
+            <X size={13} />
+          </button>
+        {:else}
+          <div class="context-idle-row">
+            <span class="context-canvas-info">
+              {#if layoutMode === 'split-h'}
+                720 × 480 px • 2 Pictures Side-by-Side
+              {:else if layoutMode === 'split-v'}
+                520 × 720 px • 2 Pictures Top & Bottom
+              {:else if layoutMode === 'collage'}
+                600 × 600 px • Freeform Collage
+              {:else}
+                600 × 600 px • 1 Picture Canvas
+              {/if}
+            </span>
+            <span class="context-hint">Click any element on canvas to edit • Del to delete</span>
           </div>
         {/if}
+      </div>
+
+      <!-- Pure Sacred Canvas Frame (Zero Overlays / Zero Obstruction) -->
+      <div class="canvas-frame">
+        <canvas bind:this={canvasEl}></canvas>
       </div>
 
       <!-- Floating Canvas Toolbar -->
@@ -858,28 +906,6 @@
           <button class="tool-btn random-tool-btn" class:spin={isRandomizing} onclick={randomizeTemplate} title="🎲 Surprise Me (Random Meme)">
             <Dices size={16} strokeWidth={2.2} />
           </button>
-
-          {#if isObjectSelected}
-            <div class="toolbar-divider"></div>
-            <!-- Contextual Object Actions on Canvas Toolbar -->
-            <button class="tool-btn danger" onclick={deleteSelected} title="Delete Selected Layer (Del / Backspace)">
-              <Trash2 size={16} strokeWidth={2} />
-            </button>
-            <button class="tool-btn" onclick={duplicateSelected} title="Duplicate Selected (Ctrl+D)">
-              <Copy size={16} strokeWidth={2} />
-            </button>
-            <button class="tool-btn" onclick={bringForward} title="Bring Forward">
-              <ArrowUp size={16} strokeWidth={2} />
-            </button>
-            <button class="tool-btn" onclick={sendBackward} title="Send Backward">
-              <ArrowDown size={16} strokeWidth={2} />
-            </button>
-            {#if isImageSelected}
-              <button class="tool-btn" onclick={flipSelected} title="Flip Horizontally">
-                <RefreshCw size={16} strokeWidth={2} />
-              </button>
-            {/if}
-          {/if}
 
           <div class="toolbar-divider"></div>
 
@@ -1983,80 +2009,152 @@
     color: var(--primary);
   }
 
-  /* Canvas Top Selection Pill */
-  .canvas-selection-badge {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
+  /* Top Context Bar (Completely OUTSIDE Canvas Frame - Zero Covering) */
+  .canvas-context-bar {
+    width: 100%;
+    max-width: 600px;
+    height: 40px;
+    min-height: 40px;
+    margin-bottom: 0.75rem;
+    padding: 0 0.65rem;
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.35rem 0.65rem 0.35rem 0.85rem;
-    background: var(--surface-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--line-strong);
-    border-radius: 9999px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    z-index: 15;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .selection-pill-type {
+  .canvas-context-bar.has-selection {
+    border-color: var(--primary);
+    background: var(--surface-elevated);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .canvas-context-bar.is-wide {
+    max-width: 720px;
+  }
+
+  .context-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    overflow-x: auto;
+  }
+
+  .context-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-xs);
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--ink);
     letter-spacing: 0.02em;
     white-space: nowrap;
   }
 
-  .selection-pill-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+  .context-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--line-strong);
+    margin: 0 0.15rem;
   }
 
-  .pill-action-btn {
+  .context-action-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.22rem 0.55rem;
-    border-radius: 9999px;
+    height: 28px;
+    padding: 0 0.55rem;
+    border-radius: var(--radius-xs);
     border: 1px solid var(--line);
     background: var(--surface);
-    color: var(--text-secondary);
-    font-size: 0.7rem;
+    color: var(--ink);
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.15s ease;
   }
 
-  .pill-action-btn:hover {
-    color: var(--ink);
-    border-color: var(--line-strong);
+  .context-action-btn:hover {
     background: var(--surface-hover);
+    border-color: var(--line-strong);
   }
 
-  .pill-action-btn.danger {
+  .context-action-btn.icon-only {
+    padding: 0;
+    width: 28px;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+
+  .context-action-btn.icon-only:hover {
+    color: var(--ink);
+  }
+
+  .context-action-btn.danger {
     color: #ef4444;
-    border-color: color-mix(in srgb, #ef4444 35%, transparent);
+    border-color: color-mix(in srgb, #ef4444 25%, transparent);
+    background: color-mix(in srgb, #ef4444 8%, transparent);
   }
 
-  .pill-action-btn.danger:hover {
+  .context-action-btn.danger:hover {
     background: #ef4444;
     color: #ffffff;
     border-color: #ef4444;
   }
 
-  /* Toolbar Danger Action */
-  .tool-btn.danger {
-    color: #ef4444;
+  .context-dismiss-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
 
-  .tool-btn.danger:hover {
-    background: #ef4444;
-    color: #ffffff;
+  .context-dismiss-btn:hover {
+    background: var(--surface-hover);
+    color: var(--ink);
   }
+
+  .context-idle-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .context-canvas-info {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  .context-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .context-hint {
+      display: none;
+    }
+  }
+
 
   /* Sticker Selection Panel in Section Part */
   .sticker-selection-card {
