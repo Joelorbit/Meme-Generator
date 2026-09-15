@@ -1,5 +1,5 @@
 {
-  "name": "eyutheme",
+  "name": "community-meme-maker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,20 +10,27 @@
     "build": "vite build",
     "precheck": "node scripts/check-dependencies.mjs",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
     "preview": "vite preview",
     "generate:icons": "node scripts/generate-icons.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@testing-library/svelte": "^5.4.2",
     "@tsconfig/svelte": "^5.0.0",
+    "@types/fabric": "^5.3.11",
+    "jsdom": "^30.0.1",
     "svelte": "^5.0.0",
     "svelte-check": "^4.7.6",
     "typescript": "^5.6.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^5.0.0"
   },
   "dependencies": {
+    "@lucide/svelte": "^1.45.0",
     "@tailwindcss/vite": "^4.3.3",
     "bits-ui": "^2.19.0",
+    "fabric": "^5.3.0",
     "iconoir": "^7.12.1",
     "tailwindcss": "^4.3.3"
   }

@@ -1,8 +1,8 @@
 export type ThemeMode = 'light' | 'dark';
 export type ThemeId = string;
 
-export const DEFAULT_THEME: ThemeId = 'indigo-velvet';
-export const DEFAULT_LIGHT_THEME: ThemeId = 'eyu-light';
+export const DEFAULT_THEME: ThemeId = 'default';
+export const DEFAULT_LIGHT_THEME: ThemeId = 'default';
 export const THEME_STORAGE_KEY = 'eyu-theme';
 export const MOTION_STORAGE_KEY = 'eyu-motion';
 export const MODE_STORAGE_KEY = 'eyu-mode';

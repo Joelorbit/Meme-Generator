@@ -1,27 +1,45 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="default" data-mode="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>EyuTheme — Frontend Boilerplate</title>
+    <title>MemeStudio — High-Velocity Meme Forge</title>
+    <meta name="description" content="The fastest way to slap text on cursed images, cook dual-panel brainrot, and farm internet points. 100% free, client-side privacy, 0ms lag canvas." />
+    <meta name="keywords" content="meme generator, meme maker, memes, blank meme templates, fabric.js, svelte 5, dual panel meme" />
+    <meta name="author" content="eyuel.me" />
+
+    <!-- OpenGraph / Social Meta Tags -->
+    <meta property="og:title" content="MemeStudio — High-Velocity Meme Forge" />
+    <meta property="og:description" content="The fastest way to slap text on cursed images, cook dual-panel brainrot, and farm internet points. 100% free, client-side privacy, 0ms lag." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/logo.svg" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="MemeStudio — High-Velocity Meme Forge" />
+    <meta name="twitter:description" content="The fastest way to slap text on cursed images, cook dual-panel brainrot, and farm internet points. 100% free, client-side privacy, 0ms lag." />
+    <meta name="twitter:image" content="/logo.svg" />
+
+    <!-- Google Fonts: Outfit & Lexend -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Lexend:wght@100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@300..800&family=Outfit:wght@300..900&family=JetBrains+Mono:wght@400..700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Theme Initializer Script -->
     <script>
       (() => {
-        const stored = localStorage.getItem('eyu-theme') || localStorage.getItem('theme');
-        const savedMode = localStorage.getItem('eyu-mode');
-        const systemMode = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        const fallback = 'indigo-velvet';
-        const theme = stored === 'light' ? 'eyu-light' : stored === 'dark' ? fallback : stored || fallback;
-        const mode = savedMode === 'light' || savedMode === 'dark' ? savedMode : stored === 'light' || stored === 'dark' ? stored : systemMode;
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.dataset.mode = mode;
-        document.documentElement.style.colorScheme = mode;
+        try {
+          const savedMode = localStorage.getItem('eyu-mode');
+          const systemMode = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          const mode = savedMode === 'light' || savedMode === 'dark' ? savedMode : systemMode;
+          document.documentElement.dataset.theme = 'default';
+          document.documentElement.dataset.mode = mode;
+          document.documentElement.style.colorScheme = mode;
+        } catch (e) {}
       })();
     </script>
     <link rel="stylesheet" href="/src/lib/tokens.css" />

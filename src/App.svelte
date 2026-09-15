@@ -1,253 +1,575 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Icon from './lib/components/primitives/Icon.svelte';
+  import MemeEditor from './MemeEditor.svelte';
+  import MemeLogo from './lib/components/primitives/MemeLogo.svelte';
+  import { type ThemeMode, readStoredMode, applyTheme, toggleColorMode } from './lib/theme';
   import {
-    Alert,
-    Button,
-    Card,
-    Cluster,
-    Combobox,
-    DropdownMenu,
-    Popover,
-    Container,
-    Input,
-    Select,
-    StatusDot,
-    Surface,
-    Sheet,
-    ThemeToggle,
-  } from './lib/components/ui/index';
-  import { semanticTokenGroups } from './lib/data/tokens';
-  import { applyTheme, readStoredMode, type ThemeId, type ThemeMode } from './lib/theme';
+    Sun,
+    Moon,
+    Zap,
+    Columns,
+    ShieldCheck,
+    Dices,
+    ArrowRight,
+    Sparkles
+  } from '@lucide/svelte';
+  import {
+    pureBlankTemplates,
+    localTemplates,
+    curatedMemes,
+    fetchAllInitialBlankTemplates,
+    type MemeTemplate
+  } from './lib/templatesData';
 
-  const CURATED_THEME: ThemeId = 'moss-stone';
-  let activeTheme = $state<ThemeId>(CURATED_THEME);
+  let mounted = $state(false);
   let activeMode = $state<ThemeMode>('dark');
-  let panelOpen = $state(false);
+  let currentRoute = $state<'/' | '/meme'>('/');
+  let selectedTemplate = $state<MemeTemplate | null>(null);
+  let isSurpriseRolling = $state(false);
 
-  onMount(() => {
-    activeTheme = CURATED_THEME;
+  // Blank templates cache for instant 1-click surprise
+  let allTemplatesCache = $state<MemeTemplate[]>([...pureBlankTemplates, ...localTemplates, ...curatedMemes]);
+
+  function syncRoute() {
+    const hash = window.location.hash.toLowerCase();
+    const path = window.location.pathname.toLowerCase();
+    if (hash.includes('meme') || path === '/meme') {
+      currentRoute = '/meme';
+    } else {
+      currentRoute = '/';
+    }
+  }
+
+  onMount(async () => {
     activeMode = readStoredMode('dark');
-    applyTheme(CURATED_THEME, false, activeMode);
+    applyTheme('default', false, activeMode);
+    mounted = true;
+
+    syncRoute();
+    window.addEventListener('hashchange', syncRoute);
+
+    // Pre-cache blank templates for surprise me
+    const blanks = await fetchAllInitialBlankTemplates();
+    if (blanks.length > 0) {
+      const existingUrls = new Set(allTemplatesCache.map((t) => t.url));
+      const newItems = blanks.filter((t) => !existingUrls.has(t.url));
+      allTemplatesCache = [...allTemplatesCache, ...newItems];
+    }
   });
 
+  function handleThemeToggle() {
+    activeMode = toggleColorMode(activeMode);
+    applyTheme('default', true, activeMode);
+  }
+
+  function navigateTo(route: '/' | '/meme') {
+    currentRoute = route;
+    if (route === '/meme') {
+      window.location.hash = '#/meme';
+    } else {
+      window.location.hash = '#/';
+    }
+  }
+
+  function handleSurpriseMe() {
+    isSurpriseRolling = true;
+    if (allTemplatesCache.length === 0) {
+      navigateTo('/meme');
+      return;
+    }
+    const rand = allTemplatesCache[Math.floor(Math.random() * allTemplatesCache.length)];
+    setTimeout(() => {
+      isSurpriseRolling = false;
+      selectedTemplate = rand;
+      navigateTo('/meme');
+    }, 250);
+  }
 </script>
 
-<svelte:head>
-  <title>EyuTheme — Frontend boilerplate</title>
-  <meta name="description" content="A broad Svelte design system boilerplate with semantic tokens, themes, patterns, and accessible UI primitives." />
-</svelte:head>
+<div class="app-shell" class:is-landing={currentRoute === '/'}>
+  <!-- Shared Clean Navbar (No glow) -->
+  <header class="app-nav">
+    <div class="nav-inner">
+      <button class="nav-brand" onclick={() => navigateTo('/')} title="MemeStudio Home">
+        <div class="brand-icon">
+          <MemeLogo size={20} class="brand-logo" />
+        </div>
+        <span class="brand-name">MemeStudio</span>
+      </button>
 
-<a class="skip-link" href="#main-content">Skip to content</a>
+      <div class="nav-actions">
+        {#if currentRoute === '/'}
+          <button class="nav-cta-btn" onclick={() => navigateTo('/meme')}>
+            <span>Start Cooking</span>
+            <ArrowRight size={14} />
+          </button>
+        {:else}
+          <button class="nav-home-btn" onclick={() => navigateTo('/')}>
+            <span>Home</span>
+          </button>
+        {/if}
 
-<div class="app">
-  <header class="topbar">
-    <Container>
-      <div class="topbar__inner">
-        <a class="brand" href="/" aria-label="EyuTheme home">
-          <span class="brand__mark">E</span>
-          <span class="brand__name">eyutheme</span>
+        <a
+          href="https://github.com/Joelorbit/community-meme-maker"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="nav-icon-btn"
+          title="GitHub"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+            ></path>
+          </svg>
         </a>
-        <nav class="topbar__nav" aria-label="Primary navigation">
-          <a href="#tokens">Tokens</a>
-          <a href="#components">Components</a>
-          <a href="https://github.com/Joelorbit/Mytheme" target="_blank" rel="noreferrer">GitHub</a>
-        </nav>
-        <Cluster gap="sm">
-          <ThemeToggle themeId={CURATED_THEME} respectStoredTheme={false} position="relative" onmodechange={(mode) => activeMode = mode} />
-        </Cluster>
+
+        <button
+          class="nav-icon-btn"
+          onclick={handleThemeToggle}
+          aria-label="Toggle Theme"
+          title="Toggle Light/Dark Theme"
+        >
+          {#if mounted && activeMode === 'dark'}
+            <Sun size={15} strokeWidth={2} />
+          {:else}
+            <Moon size={15} strokeWidth={2} />
+          {/if}
+        </button>
       </div>
-    </Container>
+    </div>
   </header>
 
-  <main id="main-content">
-    <section class="hero pattern-overlay" style="--pattern-image: var(--circuit-pattern); --pattern-size: 40px;">
-      <Container>
-        <div class="hero__grid">
-          <div class="hero__content">
-            <p class="caption hero__eyebrow">Svelte 5 · Token contract · Boilerplate</p>
-            <h1 class="display display--hero display-lg">Build a sharper frontend.</h1>
-            <p class="hero__lead body-lg">A broad design system for Eyu brand interfaces: semantic colors, tactile surfaces, technical patterns, resilient states, and components that compose without fighting the project.</p>
-            <Cluster gap="md">
-              <Button href="#components" variant="primary" size="lg">Explore components</Button>
-              <Button href="https://github.com/Joelorbit/Mytheme" variant="outline" size="lg" external>View source</Button>
-            </Cluster>
-            <Cluster gap="lg" class="hero__status">
-              <StatusDot status="success" label="System ready" pulse />
-              <span class="mono-sm hero__theme">{activeTheme} · {activeMode}</span>
-            </Cluster>
-          </div>
-          <Surface tone="high" padding="lg" class="hero__panel" interactive>
-            <div class="hero__panel-mark"><Icon name="palette" size={26} strokeWidth={1.5} /></div>
-            <p class="caption">The contract</p>
-            <h2 class="heading heading-md">Meaning before decoration.</h2>
-            <p class="body-sm">Components consume semantic roles. Themes change the values underneath. Your product stays coherent without losing personality.</p>
-            <div class="hero__mini-grid">
-              <span style="--swatch: var(--primary)"></span>
-              <span style="--swatch: var(--secondary)"></span>
-              <span style="--swatch: var(--tertiary)"></span>
-              <span style="--swatch: var(--status-success)"></span>
-              <span style="--swatch: var(--status-warning)"></span>
-              <span style="--swatch: var(--status-danger)"></span>
-            </div>
-          </Surface>
+  <!-- ROUTE 1: SINGLE-PAGE NON-SCROLLABLE LANDING -->
+  {#if currentRoute === '/'}
+    <main class="landing-viewport">
+      <div class="landing-content">
+        <!-- Flat Trollface Icon (No Glow) -->
+        <div class="flat-logo-box">
+          <MemeLogo size={48} class="flat-troll-svg" />
         </div>
-      </Container>
-    </section>
 
-    <section id="tokens" class="section">
-      <Container>
-        <div class="section-heading">
-          <div>
-            <p class="caption">01 · Semantic layer</p>
-            <h2 class="heading heading-lg">Color roles that scale.</h2>
-          </div>
-          <p class="section-heading__copy body-md">Choose meaning in components, then let the active theme supply the mood. Every foreground role is paired to its parent surface or fill.</p>
+        <!-- Clean Pill Badge -->
+        <div class="flat-badge">
+          <Zap size={13} class="icon-accent" />
+          <span>high-velocity meme forge</span>
         </div>
-        <div class="token-groups">
-          {#each semanticTokenGroups as group}
-            <Surface tone="default" padding="md" class="token-group">
-              <div class="token-group__heading">
-                <span class="status__dot" style={`background: var(${group.tokens[0]})`}></span>
-                <h3 class="heading heading-sm">{group.label}</h3>
-              </div>
-              <div class="token-swatches">
-                {#each group.tokens as token}
-                  <div class="token-swatch">
-                    <span class="token-swatch__color" style={`background: var(${token})`}></span>
-                    <span class="mono-xs">{token.replace('--', '')}</span>
-                  </div>
-                {/each}
-              </div>
-            </Surface>
-          {/each}
-        </div>
-      </Container>
-    </section>
 
-    <section id="components" class="section section--components pattern-dots">
-      <Container>
-        <div class="section-heading">
-          <div>
-            <p class="caption">02 · Component language</p>
-            <h2 class="heading heading-lg">Ready for real product work.</h2>
-          </div>
-          <p class="section-heading__copy body-md">Forms, actions, feedback, and surfaces are wired to the same states and tokens you use in production.</p>
-        </div>
-        <div class="component-grid">
-          <Card title="Form field" description="A familiar input with hint and error-ready semantics.">
-            <div class="form-stack">
-              <Input id="demo-email" type="email" label="Email address" placeholder="you@example.com" hint="We will only use this for account access." />
-              <Select id="demo-role" label="Role" hint="Choose the role that best matches your work.">
-                <option value="designer">Designer</option>
-                <option value="engineer">Engineer</option>
-                <option value="founder">Founder</option>
-              </Select>
-            </div>
-          </Card>
-          <Card title="Actions" description="Primary, secondary, outline, tertiary, link, and danger intent.">
-            <Cluster gap="sm">
-              <Button size="sm">Primary</Button>
-              <Button size="sm" variant="secondary">Secondary</Button>
-              <Button size="sm" variant="tertiary">Tertiary</Button>
-              <Button size="sm" variant="outline">Outline</Button>
-              <Button size="sm" variant="danger">Delete</Button>
-              <Button size="sm" variant="link">Learn more</Button>
-            </Cluster>
-          </Card>
-          <Card title="Feedback" description="Status roles support calm and clear product states.">
-            <div class="form-stack">
-              <Alert type="info" title="Heads up">This is an informational message using the active theme.</Alert>
-              <Alert type="success" title="Saved">Your preference has been stored.</Alert>
-            </div>
-          </Card>
-          <Card title="Surface recipe" description="Compose a surface with any layout primitive inside.">
-            <Surface tone="highest" padding="md" bordered={false} class="recipe">
-              <div class="recipe__top"><StatusDot status="success" label="Live" /><span class="mono-xs">v5.1</span></div>
-              <h3 class="heading heading-sm">Ship with a point of view.</h3>
-              <p class="body-sm">Use the foundation tokens, then extend the system when the product earns a new pattern.</p>
-            </Surface>
-          </Card>
-          <Card title="Advanced interactions" description="Skit/Bits interaction power, restyled as Eyu.">
-            <div class="form-stack">
-              <div class="advanced-row">
-                <DropdownMenu label="Eyu action menu" items={[{ label: 'Duplicate', value: 'duplicate' }, { label: 'Archive', value: 'archive' }, { label: 'Delete', value: 'delete', danger: true }]} />
-                <Popover>
-                  {#snippet trigger()}<Button size="sm" variant="outline">Open popover</Button>{/snippet}
-                  {#snippet children()}<p class="body-sm advanced-copy">Every overlay uses Eyu surfaces, outlines, focus rings, and motion.</p>{/snippet}
-                </Popover>
-                <Button size="sm" variant="secondary" onclick={() => panelOpen = true}>Open sheet</Button>
-              </div>
-              <Combobox options={['Indigo Velvet', 'Cyber Olive', 'Solar Ochre', 'Emerald Sage']} label="Search a colorway" />
-            </div>
-          </Card>
-        </div>
-        <Sheet bind:open={panelOpen} title="Eyu utility panel">
-          <p class="body-md advanced-copy">This panel inherits the active colorway and the current {activeMode} canvas mode.</p>
-        </Sheet>
-      </Container>
-    </section>
-  </main>
+        <!-- Headline & Tagline -->
+        <h1 class="landing-title">
+          welcome to my meme shit.
+        </h1>
 
-  <footer class="footer">
-    <Container>
-      <div class="footer__inner">
-        <span class="mono-sm">EyuTheme · Built for all Eyu frontends</span>
-        <a href="https://github.com/Joelorbit/Mytheme" target="_blank" rel="noreferrer">Read the docs <Icon name="arrow-up-right" size={15} /></a>
+        <p class="landing-desc">
+          the fastest way to slap text on cursed images, cook dual-panel brainrot, and farm internet points. 100% free, zero signups, no watermarks, no corporate nonsense.
+        </p>
+
+        <!-- Action CTAs -->
+        <div class="landing-btns">
+          <button class="btn-primary" onclick={() => navigateTo('/meme')}>
+            <span>Start Cooking</span>
+            <ArrowRight size={15} />
+          </button>
+
+          <button class="btn-secondary" onclick={() => navigateTo('/meme')} title="Browse 10,000+ Blank Meme Canvases">
+            <Sparkles size={15} class="icon-accent" />
+            <span>10,000+ Templates</span>
+          </button>
+
+          <button class="btn-secondary" onclick={handleSurpriseMe} title="Surprise Me with a Blank Template">
+            <Dices size={15} class={isSurpriseRolling ? 'spin' : ''} />
+            <span>1-Click Surprise Me</span>
+          </button>
+        </div>
+
+        <!-- Feature Chips (No Emojis, Real System Icons, Flat) -->
+        <div class="pills-row">
+          <div class="pill-item">
+            <Zap size={13} class="icon-accent" />
+            <span>0ms Lag Canvas</span>
+          </div>
+          <span class="pill-sep">•</span>
+          <div class="pill-item">
+            <Columns size={13} class="icon-accent" />
+            <span>2 Pictures in 1 Canvas</span>
+          </div>
+          <span class="pill-sep">•</span>
+          <div class="pill-item">
+            <ShieldCheck size={13} class="icon-accent" />
+            <span>We Don't Spy On Your Memes</span>
+          </div>
+          <span class="pill-sep">•</span>
+          <div class="pill-item">
+            <Dices size={13} class="icon-accent" />
+            <span>1-Click Surprise Me</span>
+          </div>
+        </div>
       </div>
-    </Container>
+    </main>
+
+  <!-- ROUTE 2: THE MEME GENERATING & CANVAS EDITING PAGE -->
+  {:else}
+    <main class="meme-studio-view">
+      <MemeEditor currentMode={activeMode} initialTemplate={selectedTemplate} />
+    </main>
+  {/if}
+
+  <!-- Simple Clean Footer (No Glow) -->
+  <footer class="app-foot">
+    <div class="foot-inner">
+      <span>Crafted by <a href="https://eyuel.me" target="_blank" rel="noopener noreferrer" class="foot-author">eyuel.me</a></span>
+    </div>
   </footer>
 </div>
 
 <style>
-  .app { min-height: 100dvh; background: var(--surface-low); }
-  .topbar { position: sticky; top: 0; z-index: var(--z-nav); border-bottom: 1px solid var(--outline-variant); background: color-mix(in srgb, var(--surface-low) 84%, transparent); backdrop-filter: blur(18px); }
-  .topbar__inner { display: flex; min-height: 4.5rem; align-items: center; justify-content: space-between; gap: var(--space-5); }
-  .brand { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--content-primary); text-decoration: none; }
-  .brand__mark { display: grid; width: 2rem; height: 2rem; place-items: center; border: 1px solid var(--outline); border-radius: var(--radius-sm); background: var(--surface-high); font-family: var(--font-display); font-size: 1.1rem; font-style: italic; font-weight: 700; }
-  .brand__name { font-family: var(--font-display); font-size: 1.2rem; font-weight: 650; letter-spacing: -0.03em; }
-  .topbar__nav { display: flex; gap: var(--space-5); margin-inline: auto; }
-  .topbar__nav a, .footer a { color: var(--content-muted); font-size: var(--body-sm); text-decoration: none; }
-  .topbar__nav a:hover, .footer a:hover { color: var(--content-primary); }
-  .topbar :global(.theme-picker) { min-width: 13rem; }
-  .topbar :global(.theme-picker__label) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
-  .hero { position: relative; padding: clamp(5rem, 12vw, 10rem) 0 clamp(4rem, 8vw, 7rem); overflow: hidden; }
-  .hero__grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(18rem, 0.75fr); align-items: center; gap: clamp(3rem, 8vw, 9rem); }
-  .hero__content { max-width: 48rem; }
-  .hero__eyebrow { margin: 0 0 var(--space-5); color: var(--accent-strong); }
-  .hero h1 { max-width: 11ch; margin: 0; color: var(--content-primary); }
-  .hero__lead { max-width: 58ch; margin: var(--space-6) 0 var(--space-7); color: var(--content-secondary); }
-  :global(.hero__status) { margin-top: var(--space-7); color: var(--content-muted); }
-  .hero__theme { color: var(--content-faint); }
-  :global(.hero__panel) { display: flex; flex-direction: column; gap: var(--space-3); min-height: 22rem; justify-content: center; }
-  .hero__panel-mark { display: grid; width: 3.5rem; height: 3.5rem; place-items: center; margin-bottom: var(--space-4); border: 1px solid var(--outline); border-radius: var(--radius-md); background: var(--primary-container); color: var(--primary); }
-  :global(.hero__panel h2), :global(.hero__panel p) { margin: 0; }
-  :global(.hero__panel p.body-sm) { color: var(--content-secondary); }
-  .hero__mini-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-2); margin-top: var(--space-6); }
-  .hero__mini-grid span { aspect-ratio: 1; border-radius: var(--radius-sm); background: var(--swatch); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--content-primary) 18%, transparent); }
-  .section { padding: clamp(4rem, 9vw, 8rem) 0; }
-  .section--components { background-color: var(--surface-low); }
-  .section-heading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-8); margin-bottom: var(--space-8); }
-  .section-heading h2, .section-heading p { margin: 0; }
-  .section-heading__copy { max-width: 42ch; color: var(--content-muted); }
-  .token-groups, .component-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: var(--space-4); }
-  :global(.token-group) { min-height: 10rem; }
-  .token-group__heading { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); }
-  .token-group__heading h3 { margin: 0; }
-  .token-swatches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
-  .token-swatch { display: flex; align-items: center; gap: var(--space-2); min-width: 0; color: var(--content-muted); }
-  .token-swatch__color { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; border: 1px solid color-mix(in srgb, var(--content-primary) 18%, transparent); border-radius: 50%; }
-  .component-grid :global(.card) { min-height: 100%; }
-  .form-stack { display: flex; flex-direction: column; gap: var(--space-4); }
-  :global(.advanced-row) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-  :global(.advanced-copy) { margin: 0; color: var(--content-secondary); }
-  :global(.recipe) { display: flex; flex-direction: column; gap: var(--space-3); }
-  .recipe__top { display: flex; align-items: center; justify-content: space-between; }
-  :global(.recipe h3), :global(.recipe p) { margin: 0; }
-  :global(.recipe p) { color: var(--content-secondary); }
-  .footer { padding: var(--space-6) 0; border-top: 1px solid var(--outline-variant); }
-  .footer__inner { display: flex; justify-content: space-between; gap: var(--space-4); }
-  .footer a { display: inline-flex; align-items: center; gap: var(--space-2); }
-  @media (max-width: 820px) { .topbar__nav { display: none; } .hero__grid { grid-template-columns: 1fr; } :global(.hero__panel) { min-height: auto; } }
-  @media (max-width: 560px) { .topbar__inner { min-height: 4rem; } .topbar :global(.theme-picker) { display: none; } .section-heading, .footer__inner { align-items: flex-start; flex-direction: column; } }
+  :global(html) {
+    scroll-behavior: smooth;
+  }
+
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg);
+    font-family: var(--font-sans);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  /* Root Container */
+  .app-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg);
+  }
+
+  /* Non-scrollable single-page viewport when on landing page */
+  .app-shell.is-landing {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Header Navbar */
+  .app-nav {
+    flex-shrink: 0;
+    height: 52px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-inner {
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+  }
+
+  .brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-xs);
+    background: var(--surface-elevated);
+    border: 1px solid var(--line);
+    color: var(--primary);
+  }
+
+  :global(.brand-logo) {
+    color: var(--primary);
+  }
+
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .nav-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 32px;
+    padding: 0 0.8rem;
+    border-radius: var(--radius-xs);
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .nav-cta-btn:hover {
+    background: var(--primary-hover);
+  }
+
+  .nav-home-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 0.75rem;
+    border-radius: var(--radius-xs);
+    background: var(--surface-elevated);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+
+  .nav-home-btn:hover {
+    background: var(--surface-hover);
+  }
+
+  .nav-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .nav-icon-btn:hover {
+    background: var(--surface-hover);
+    color: var(--ink);
+  }
+
+  /* Single Page Non-Scrollable Landing Viewport */
+  .landing-viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .landing-content {
+    max-width: 680px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.15rem;
+  }
+
+  /* Flat Trollface Box (No Glow) */
+  .flat-logo-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 68px;
+    height: 68px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    color: var(--primary);
+  }
+
+  :global(.flat-troll-svg) {
+    color: var(--primary);
+  }
+
+  .flat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+  }
+
+  :global(.icon-accent) {
+    color: var(--primary);
+  }
+
+  .landing-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 5.5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    margin: 0;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .landing-desc {
+    font-size: clamp(0.92rem, 1.8vw, 1.05rem);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 580px;
+  }
+
+  .landing-btns {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1.3rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-hover);
+  }
+
+  /* Feature Pills */
+  .pills-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pill-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .pill-sep {
+    opacity: 0.4;
+  }
+
+  /* Meme Studio View */
+  .meme-studio-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Footer (Simple & Centered) */
+  .app-foot {
+    flex-shrink: 0;
+    height: 48px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .foot-inner {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .foot-author {
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .foot-author:hover {
+    color: var(--primary);
+  }
+
+  :global(.spin) {
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 </style>

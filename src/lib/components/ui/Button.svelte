@@ -2,7 +2,7 @@
   import Icon from '../primitives/Icon.svelte';
   import type { Snippet } from 'svelte';
 
-  type Variant = 'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost' | 'link' | 'danger';
+  type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   type Size = 'sm' | 'md' | 'lg' | 'icon';
 
   const arrowSize: Record<Size, number> = { sm: 14, md: 15, lg: 16, icon: 16 };
@@ -10,6 +10,7 @@
   let {
     variant = 'primary',
     size = 'md',
+    class: className = '',
     href,
     target,
     external = false,
@@ -19,9 +20,11 @@
     onClick,
     onclick,
     children,
+    ...rest
   }: {
     variant?: Variant;
     size?: Size;
+    class?: string;
     href?: string;
     target?: string;
     external?: boolean;
@@ -31,10 +34,11 @@
     onClick?: (event: MouseEvent) => void;
     onclick?: (event: MouseEvent) => void;
     children?: Snippet;
+    [key: string]: any;
   } = $props();
 
   const busy = $derived(loading || disabled);
-  const cls = $derived(`btn btn--${variant} btn--${size}`);
+  const cls = $derived(`btn btn--${variant} btn--${size} ${className}`);
 </script>
 
 {#if href}
@@ -45,6 +49,7 @@
     aria-disabled={busy}
     tabindex={busy ? -1 : undefined}
     href={busy ? undefined : href}
+    {...rest}
   >
     {#if loading}<span class="btn__spinner" aria-hidden="true"></span>{/if}
     <span class="btn__label">{@render children?.()}</span>
@@ -57,6 +62,7 @@
     disabled={busy}
     onclick={onclick ?? onClick}
     aria-busy={loading}
+    {...rest}
   >
     {#if loading}<span class="btn__spinner" aria-hidden="true"></span>{/if}
     <span class="btn__label">{@render children?.()}</span>
@@ -69,22 +75,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
+    gap: 0.5rem;
     border: 1px solid transparent;
     border-radius: var(--radius-md);
-    font-size: var(--body-sm);
-    font-weight: 550;
-    letter-spacing: 0.005em;
+    font-size: 0.95rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
     line-height: 1;
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
-    transition:
-      background-color var(--dur-2) var(--ease-standard),
-      border-color var(--dur-2) var(--ease-standard),
-      color var(--dur-2) var(--ease-standard),
-      box-shadow var(--dur-2) var(--ease-standard),
-      transform var(--dur-1) var(--ease-standard);
+    transition: all 0.2s ease;
   }
 
   .btn:disabled {
@@ -94,147 +95,123 @@
   .btn__label {
     display: inline-flex;
     align-items: center;
+    gap: 0.5rem;
   }
 
-  /* -------- variants: one monochrome language, energy as emphasis -------- */
+  /* Primary Button */
   .btn--primary {
-    background: var(--ink);
-    color: var(--ink-inverse);
+    background: var(--primary);
+    color: #ffffff;
   }
 
   .btn--primary:hover:not(:disabled) {
-    background: var(--surface-elevated);
-    border-color: var(--ink);
-    color: var(--ink);
+    background: var(--primary-hover);
+    transform: translateY(-1px);
   }
 
   .btn--primary:active:not(:disabled) {
-    background: var(--surface-active);
+    background: var(--primary);
+    transform: translateY(1px);
   }
 
+  /* Secondary Button */
   .btn--secondary {
     background: var(--surface);
-    border-color: var(--line);
-    color: var(--text-primary);
+    border-color: var(--line-strong);
+    color: var(--ink);
   }
 
   .btn--secondary:hover:not(:disabled) {
-    background: var(--surface-elevated);
-    border-color: var(--line-strong);
+    background: var(--surface-hover);
+    transform: translateY(-1px);
   }
 
   .btn--secondary:active:not(:disabled) {
-    background: var(--surface-active);
+    background: var(--surface);
+    transform: translateY(1px);
   }
 
-  .btn--tertiary {
-    background: var(--tertiary-container);
-    color: var(--on-tertiary-container);
-  }
-
-  .btn--tertiary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--tertiary) 28%, var(--surface-default));
-  }
-
+  /* Outline Button */
   .btn--outline {
-    border-color: var(--outline);
+    border-color: var(--line-strong);
     background: transparent;
-    color: var(--content-primary);
+    color: var(--ink);
   }
 
   .btn--outline:hover:not(:disabled) {
-    border-color: var(--outline-strong);
-    background: var(--surface-hover-role);
+    border-color: var(--primary);
+    background: var(--surface-hover);
+    color: var(--primary);
   }
 
-  .btn--link {
-    min-height: auto;
-    padding-inline: 0;
-    border-color: transparent;
-    background: transparent;
-    color: var(--content-link);
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
-  }
-
-  .btn--link:hover:not(:disabled) {
-    color: var(--content-link-hover);
-  }
-
+  /* Ghost Button */
   .btn--ghost {
     background: transparent;
-    color: var(--text-primary);
+    color: var(--text-secondary);
   }
 
   .btn--ghost:hover:not(:disabled) {
     background: var(--surface-hover);
+    color: var(--ink);
   }
 
-  .btn--ghost:active:not(:disabled) {
-    background: var(--surface-active);
-  }
-
+  /* Danger Button */
   .btn--danger {
-    background: var(--danger-soft);
-    border-color: color-mix(in srgb, var(--danger) 35%, transparent);
-    color: var(--danger);
+    background: transparent;
+    border-color: var(--color-destructive);
+    color: var(--color-destructive);
   }
 
   .btn--danger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--danger) 22%, transparent);
+    background: var(--color-destructive);
+    color: var(--color-destructive-foreground);
   }
 
-  /* -------- states -------- */
+  /* States */
   .btn:focus-visible {
-    outline: 2px solid var(--ring);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
-  }
-
-  .btn[aria-disabled='true'] {
-    pointer-events: none;
   }
 
   .btn:disabled {
     background: var(--disabled-bg);
     border-color: transparent;
     color: var(--text-disabled);
-    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
   }
 
-  .btn:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  /* -------- sizes (8pt rhythm) -------- */
+  /* Sizes */
   .btn--sm {
-    min-height: var(--control-md);
-    padding-inline: var(--space-3);
-    font-size: var(--body-xs);
+    min-height: 32px;
+    padding-inline: 0.75rem;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
   }
 
   .btn--md {
-    min-height: var(--control-md);
-    padding-inline: var(--space-4);
+    min-height: 40px;
+    padding-inline: 1.25rem;
   }
 
   .btn--lg {
-    min-height: var(--control-lg);
-    padding-inline: var(--space-5);
-    font-size: var(--body-md);
+    min-height: 48px;
+    padding-inline: 1.5rem;
+    font-size: 1.05rem;
+    border-radius: var(--radius-lg);
   }
 
   .btn--icon {
-    width: var(--control-icon);
-    height: var(--control-icon);
+    width: 40px;
+    height: 40px;
     padding: 0;
   }
 
-  /* -------- loading -------- */
   .btn__spinner {
     width: 14px;
     height: 14px;
     flex: 0 0 14px;
-    border: 1.5px solid currentColor;
+    border: 2px solid currentColor;
     border-right-color: transparent;
     border-radius: 50%;
     animation: spin 550ms linear infinite;
