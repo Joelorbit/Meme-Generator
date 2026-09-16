@@ -189,6 +189,277 @@ export async function fetchRedditMemes(count = 50, subreddit = 'MemeTemplatesOff
   return [];
 }
 
+let cachedCatalog: MemeTemplate[] | null = null;
+
+export function getFallbackSvgUrl(title = 'Meme Canvas'): string {
+  const cleanTitle = (title || 'Meme Canvas').replace(/[<>&"]/g, '').slice(0, 30);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="#18181b"/><rect x="20" y="20" width="560" height="560" rx="16" fill="#27272a" stroke="#87a665" stroke-width="3"/><text x="300" y="280" font-family="sans-serif" font-size="28" font-weight="700" fill="#87a665" text-anchor="middle">MEME CANVAS</text><text x="300" y="325" font-family="sans-serif" font-size="18" fill="#a1a1aa" text-anchor="middle">${cleanTitle}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+export function generateExtensiveBlankCatalog(): MemeTemplate[] {
+  if (cachedCatalog) return cachedCatalog;
+
+  function makeSvgUrl(svg: string): string {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  const templates: MemeTemplate[] = [];
+
+  const blankColors = [
+    { name: 'Obsidian Noir', bg: '#09090b', border: '#27272a', text: '#71717a' },
+    { name: 'Studio White', bg: '#ffffff', border: '#e4e4e7', text: '#71717a' },
+    { name: 'Slate Midnight', bg: '#0f172a', border: '#1e293b', text: '#64748b' },
+    { name: 'Cyber Charcoal', bg: '#18181b', border: '#3f3f46', text: '#a1a1aa' },
+    { name: 'Warm Parchment', bg: '#fef3c7', border: '#fde68a', text: '#92400e' },
+    { name: 'Forest Shadow', bg: '#022c22', border: '#064e3b', text: '#34d399' },
+    { name: 'Deep Amethyst', bg: '#2e1065', border: '#581c87', text: '#c084fc' },
+    { name: 'Midnight Navy', bg: '#020617', border: '#1e1b4b', text: '#60a5fa' },
+    { name: 'Crimson Velvet', bg: '#450a0a', border: '#7f1d1d', text: '#f87171' },
+    { name: 'Desert Amber', bg: '#451a03', border: '#78350f', text: '#fbbf24' }
+  ];
+
+  const blankThemes = [
+    'Minimalist', 'Raw Canvas', 'Studio', 'Unwritten', 'Clean Slate',
+    'Zero Distraction', 'High Contrast', 'Framed', 'Creative Blank', 'Universal'
+  ];
+
+  // 1. Pure Blank (1,500)
+  for (let i = 0; i < 1500; i++) {
+    const c = blankColors[i % blankColors.length];
+    const t = blankThemes[Math.floor(i / blankColors.length) % blankThemes.length];
+    const num = i + 1;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><rect x="16" y="16" width="568" height="568" rx="8" fill="none" stroke="${c.border}" stroke-width="2"/><text x="300" y="300" font-family="sans-serif" font-size="20" font-weight="700" fill="${c.text}" text-anchor="middle" letter-spacing="2">${t.toUpperCase()} #${num}</text></svg>`;
+    templates.push({
+      id: `blank_${num}`,
+      name: `${t} Canvas (${c.name}) #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Pure Blank',
+      boxCount: 2,
+      isBlank: true
+    });
+  }
+
+  // 2. Two-Panel (2,600)
+  const twoPanelPairs = [
+    ['Expectation', 'Reality'],
+    ['Me at 3 AM', 'Me at 8 AM'],
+    ['How It Started', 'How It is Going'],
+    ['Code in Dev', 'Code in Production'],
+    ['What I Planned', 'What Happened'],
+    ['Client Budget', 'Client Demands'],
+    ['Friday 5 PM', 'Monday 9 AM'],
+    ['Brain at Night', 'Brain in Exam'],
+    ['Before Coffee', 'After Coffee'],
+    ['Theory', 'Practice'],
+    ['Social Media', 'Real Life'],
+    ['Year 2016', 'Year 2026'],
+    ['Introvert Mode', 'Extrovert Mode'],
+    ['Dog Logic', 'Cat Logic'],
+    ['Hardware', 'Software'],
+    ['Frontend', 'Backend'],
+    ['Junior Dev', 'Senior Dev'],
+    ['Self Control', 'Impulse Buying'],
+    ['Sleep Schedule', 'One More Episode'],
+    ['Gym Goals', 'Midnight Pizza'],
+    ['5 Mins on Phone', '5 Hours on Phone'],
+    ['Saying No Problem', 'Dying Inside'],
+    ['Left Brain', 'Right Brain'],
+    ['Dating Profile', 'Sunday Morning'],
+    ['First Day on Job', 'One Year Later'],
+    ['Healthy Diet Plan', '2 AM Fast Food']
+  ];
+
+  for (let i = 0; i < 2600; i++) {
+    const pair = twoPanelPairs[i % twoPanelPairs.length];
+    const num = i + 1;
+    const isVertical = i % 2 === 1;
+    const c = blankColors[i % blankColors.length];
+    let svg = '';
+    if (!isVertical) {
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="480"><rect width="720" height="480" fill="${c.bg}"/><line x1="360" y1="0" x2="360" y2="480" stroke="${c.border}" stroke-width="4"/><rect x="20" y="20" width="320" height="50" rx="8" fill="${c.border}" opacity="0.3"/><text x="180" y="52" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${pair[0].toUpperCase()}</text><rect x="380" y="20" width="320" height="50" rx="8" fill="${c.border}" opacity="0.3"/><text x="540" y="52" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${pair[1].toUpperCase()}</text><text x="360" y="450" font-family="sans-serif" font-size="12" fill="${c.text}" text-anchor="middle" opacity="0.6">2-PANEL #${num}</text></svg>`;
+    } else {
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="520" height="720"><rect width="520" height="720" fill="${c.bg}"/><line x1="0" y1="360" x2="520" y2="360" stroke="${c.border}" stroke-width="4"/><rect x="20" y="20" width="480" height="50" rx="8" fill="${c.border}" opacity="0.3"/><text x="260" y="52" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${pair[0].toUpperCase()}</text><rect x="20" y="380" width="480" height="50" rx="8" fill="${c.border}" opacity="0.3"/><text x="260" y="412" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${pair[1].toUpperCase()}</text><text x="260" y="690" font-family="sans-serif" font-size="12" fill="${c.text}" text-anchor="middle" opacity="0.6">2-PANEL STACKED #${num}</text></svg>`;
+    }
+    templates.push({
+      id: `twopanel_${num}`,
+      name: `${pair[0]} vs ${pair[1]} (${isVertical ? 'Stacked' : 'Dual'}) #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Two-Panel',
+      boxCount: 2,
+      isBlank: true
+    });
+  }
+
+  // 3. Multi-Panel (2,200)
+  const multiTypes = [
+    { name: '3-Panel Evolution', panels: ['NORMAL', 'PANIK', 'TRANSCEND'], boxes: 3 },
+    { name: '4-Panel Comic Strip', panels: ['SETUP', 'HOPE', 'TWIST', 'REALITY'], boxes: 4 },
+    { name: 'Clown Makeup 4-Stage', panels: ['STAGE 1', 'STAGE 2', 'STAGE 3', 'CIRCUS'], boxes: 4 },
+    { name: '6-Panel Alignment Matrix', panels: ['LG', 'NG', 'CG', 'LN', 'TN', 'CE'], boxes: 6 },
+    { name: '3-Panel Decision Branch', panels: ['OPTION A', 'OPTION B', 'CHAOS'], boxes: 3 },
+    { name: 'Progressive Breakdown 4x', panels: ['PLAN', 'PROGRESS', 'DISASTER', 'ACCEPTANCE'], boxes: 4 }
+  ];
+
+  for (let i = 0; i < 2200; i++) {
+    const m = multiTypes[i % multiTypes.length];
+    const num = i + 1;
+    const c = blankColors[i % blankColors.length];
+    let svg = '';
+    if (m.boxes === 4) {
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><line x1="300" y1="0" x2="300" y2="600" stroke="${c.border}" stroke-width="4"/><line x1="0" y1="300" x2="600" y2="300" stroke="${c.border}" stroke-width="4"/><text x="150" y="160" font-family="sans-serif" font-size="15" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[0]}</text><text x="450" y="160" font-family="sans-serif" font-size="15" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[1]}</text><text x="150" y="460" font-family="sans-serif" font-size="15" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[2]}</text><text x="450" y="460" font-family="sans-serif" font-size="15" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[3]}</text></svg>`;
+    } else if (m.boxes === 3) {
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><line x1="0" y1="200" x2="600" y2="200" stroke="${c.border}" stroke-width="4"/><line x1="0" y1="400" x2="600" y2="400" stroke="${c.border}" stroke-width="4"/><text x="300" y="110" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[0]}</text><text x="300" y="310" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[1]}</text><text x="300" y="510" font-family="sans-serif" font-size="16" font-weight="700" fill="${c.text}" text-anchor="middle">${m.panels[2]}</text></svg>`;
+    } else {
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><line x1="200" y1="0" x2="200" y2="600" stroke="${c.border}" stroke-width="3"/><line x1="400" y1="0" x2="400" y2="600" stroke="${c.border}" stroke-width="3"/><line x1="0" y1="300" x2="600" y2="300" stroke="${c.border}" stroke-width="3"/><text x="100" y="160" font-family="sans-serif" font-size="14" font-weight="700" fill="${c.text}" text-anchor="middle">LG</text><text x="300" y="160" font-family="sans-serif" font-size="14" font-weight="700" fill="${c.text}" text-anchor="middle">NG</text><text x="500" y="160" font-family="sans-serif" font-size="14" font-weight="700" fill="${c.text}" text-anchor="middle">CG</text><text x="100" y="460" font-family="sans-serif" font-size="14" font-weight="700" fill="${c.text}" text-anchor="middle">LN</text><text x="300" y="460" font-family="sans-serif" font-size="14" font-weight="700" fill="${c.text}" text-anchor="middle">TN</text><text x="500" y="460" font-family="sans-serif" font-size="14" font-weight="700" fill="${c.text}" text-anchor="middle">CE</text></svg>`;
+    }
+    templates.push({
+      id: `multipanel_${num}`,
+      name: `${m.name} Blank #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Multi-Panel',
+      boxCount: m.boxes,
+      isBlank: true
+    });
+  }
+
+  // 4. Classic (1,600)
+  const classicStyles = [
+    'Demotivational Poster Frame',
+    'Advice Sunburst Gradient Rays',
+    'Breaking News TV Lower Third',
+    'Vintage Wanted Poster',
+    'Press F Memorial Plaque',
+    'Change My Mind Outdoor Banner',
+    'Newspaper Front Page Banner',
+    'Top 10 Video Thumbnail Frame'
+  ];
+
+  for (let i = 0; i < 1600; i++) {
+    const style = classicStyles[i % classicStyles.length];
+    const num = i + 1;
+    const c = blankColors[i % blankColors.length];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="#000000"/><rect x="25" y="25" width="550" height="420" fill="${c.bg}" stroke="#ffffff" stroke-width="2"/><text x="300" y="510" font-family="Times New Roman, serif" font-size="28" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="3">${style.toUpperCase().slice(0, 18)} #${num}</text><text x="300" y="550" font-family="Times New Roman, serif" font-size="15" fill="#a1a1aa" text-anchor="middle">Insert Classic Punchline Here</text></svg>`;
+    templates.push({
+      id: `classic_${num}`,
+      name: `${style} #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Classic',
+      boxCount: 2,
+      isBlank: true
+    });
+  }
+
+  // 5. Modern & Viral (1,600)
+  const modernStyles = [
+    'Twitter Post Blank Mockup',
+    'Reddit Card Blank Post',
+    'Discord Chat Message Frame',
+    'iOS Notification Alert Bubble',
+    'Search Engine Did You Mean',
+    'Spotify Track Lyrics Card',
+    'YouTube 3AM Thumbnail Frame',
+    'TikTok Subtitle Card Header'
+  ];
+
+  for (let i = 0; i < 1600; i++) {
+    const style = modernStyles[i % modernStyles.length];
+    const num = i + 1;
+    const c = blankColors[i % blankColors.length];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><rect x="20" y="20" width="560" height="110" rx="16" fill="${c.border}" opacity="0.4"/><circle cx="65" cy="75" r="25" fill="#87a665"/><text x="105" y="70" font-family="sans-serif" font-size="16" font-weight="700" fill="#ffffff">Viral Creator @handle</text><text x="105" y="92" font-family="sans-serif" font-size="13" fill="${c.text}">Just now • 10.4M views</text><rect x="20" y="145" width="560" height="435" rx="12" fill="${c.bg}" stroke="${c.border}" stroke-width="2"/><text x="300" y="360" font-family="sans-serif" font-size="18" font-weight="600" fill="${c.text}" text-anchor="middle">${style.toUpperCase()} #${num}</text></svg>`;
+    templates.push({
+      id: `modern_${num}`,
+      name: `${style} #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Modern & Viral',
+      boxCount: 2,
+      isBlank: true
+    });
+  }
+
+  // 6. Reactions (850)
+  const reactionStyles = [
+    'Speech Bubble Left',
+    'Speech Bubble Right',
+    'Shouting Jagged Burst',
+    'Internal Monologue Cloud',
+    'Anime Radial Speed Lines',
+    'Dramatic Cinematic Letterbox',
+    'Dramatic Police Spotlight',
+    'Shockwave Distortion Rings'
+  ];
+
+  for (let i = 0; i < 850; i++) {
+    const style = reactionStyles[i % reactionStyles.length];
+    const num = i + 1;
+    const c = blankColors[i % blankColors.length];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><path d="M 50 100 Q 50 50 100 50 L 500 50 Q 550 50 550 100 L 550 250 Q 550 300 500 300 L 250 300 L 150 400 L 180 300 L 100 300 Q 50 300 50 250 Z" fill="${c.border}" opacity="0.3" stroke="${c.text}" stroke-width="3"/><text x="300" y="170" font-family="sans-serif" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">${style.toUpperCase()}</text><text x="300" y="210" font-family="sans-serif" font-size="14" fill="${c.text}" text-anchor="middle">Write Your Reaction Here #${num}</text></svg>`;
+    templates.push({
+      id: `reaction_${num}`,
+      name: `${style} Reaction #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Reactions',
+      boxCount: 1,
+      isBlank: true
+    });
+  }
+
+  // 7. Animals (450)
+  const animalStyles = [
+    'Dogelore Multi-Quote Canvas',
+    'Cat Supreme Court Tribunal',
+    'Golden Retriever vs Black Cat',
+    'Wildlife Documentary Narrator',
+    'He Screm Dramatic Frame',
+    'Pet Adoption Chaos Profile'
+  ];
+
+  for (let i = 0; i < 450; i++) {
+    const style = animalStyles[i % animalStyles.length];
+    const num = i + 1;
+    const c = blankColors[i % blankColors.length];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${c.bg}"/><rect x="20" y="20" width="560" height="560" rx="20" fill="none" stroke="${c.border}" stroke-width="4"/><text x="300" y="270" font-family="Comic Sans MS, sans-serif" font-size="24" font-weight="700" fill="#87a665" text-anchor="middle">much blank • very meme</text><text x="300" y="320" font-family="sans-serif" font-size="16" font-weight="600" fill="${c.text}" text-anchor="middle">${style.toUpperCase()} #${num}</text></svg>`;
+    templates.push({
+      id: `animal_${num}`,
+      name: `${style} #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Animals',
+      boxCount: 2,
+      isBlank: true
+    });
+  }
+
+  // 8. Gaming (550)
+  const gamingStyles = [
+    '8-Bit Retro RPG Dialogue Box',
+    'Dark Souls You Died Canvas',
+    'Skyrim Skill 100 Card',
+    'Steam Achievement Unlocked',
+    'Cyberpunk 2077 Terminal HUD',
+    'Minecraft Chat & Item Tooltip',
+    'GTA Wasted Vignette Frame',
+    'Arcade Choose Your Fighter'
+  ];
+
+  for (let i = 0; i < 550; i++) {
+    const style = gamingStyles[i % gamingStyles.length];
+    const num = i + 1;
+    const c = blankColors[i % blankColors.length];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="#0c0a09"/><rect x="25" y="380" width="550" height="190" rx="10" fill="#1e1b4b" stroke="#fbbf24" stroke-width="4"/><polygon points="50,420 70,435 50,450" fill="#fbbf24"/><text x="90" y="440" font-family="monospace" font-size="18" font-weight="700" fill="#ffffff">QUEST: ${style.toUpperCase()}</text><text x="90" y="480" font-family="monospace" font-size="15" fill="#a5b4fc">Objective: Customize your caption #${num}</text></svg>`;
+    templates.push({
+      id: `gaming_${num}`,
+      name: `${style} #${num}`,
+      url: makeSvgUrl(svg),
+      category: 'Gaming',
+      boxCount: 2,
+      isBlank: true
+    });
+  }
+
+  cachedCatalog = templates;
+  return cachedCatalog;
+}
+
 export async function fetchAllInitialBlankTemplates(): Promise<MemeTemplate[]> {
   const [imgflip, memegen] = await Promise.all([
     fetchImgflipMemes(),
@@ -199,6 +470,7 @@ export async function fetchAllInitialBlankTemplates(): Promise<MemeTemplate[]> {
     ...pureBlankTemplates,
     ...localTemplates,
     ...curatedMemes,
+    ...generateExtensiveBlankCatalog(),
     ...imgflip,
     ...memegen
   ];

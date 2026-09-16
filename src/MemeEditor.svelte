@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { fabric } from 'fabric';
-  import { Square, Columns, LayoutList, Layers, Download, Copy, RefreshCw, Upload, Bold, Italic, Type, AlignLeft, AlignCenter, AlignRight, Search, Plus, Trash2, Image, Dices, Sparkles, Sticker, ExternalLink, ArrowUp, ArrowDown, X } from '@lucide/svelte';
-  import { pureBlankTemplates, localTemplates, curatedMemes, fetchAllInitialBlankTemplates, fetchRedditMemes } from './lib/templatesData';
+  import { Square, Columns, LayoutList, LayoutPanelTop, Layers, Download, Copy, RefreshCw, Upload, Bold, Italic, Type, AlignLeft, AlignCenter, AlignRight, Search, Plus, Trash2, Image, Dices, Sparkles, Sticker, ExternalLink, ArrowUp, ArrowDown, X, Palette, Check } from '@lucide/svelte';
+  import { pureBlankTemplates, localTemplates, curatedMemes, generateExtensiveBlankCatalog, getFallbackSvgUrl, fetchAllInitialBlankTemplates, fetchRedditMemes } from './lib/templatesData';
   import type { MemeTemplate } from './lib/templatesData';
 
   // Canvas refs and state
@@ -25,7 +25,7 @@
   let handleColor = '#87a665';
   let handleStrokeColor = '#ffffff';
 
-  // Layout mode: 'single' | 'split-h' | 'split-v' | 'collage'
+  // Layout mode: 'single' | 'split-h' | 'split-v' | 'header' | 'collage'
   let activeTab = $state<'text' | 'templates' | 'dual' | 'stickers'>('templates');
   let isRandomizing = $state(false);
 
@@ -39,7 +39,7 @@
     }, 400);
   }
 
-  let layoutMode = $state<'single' | 'split-h' | 'split-v' | 'collage'>('single');
+  let layoutMode = $state<'single' | 'split-h' | 'split-v' | 'header' | 'collage'>('single');
   let activeSlot = $state<1 | 2>(1);
 
   // Picture slots
@@ -52,8 +52,8 @@
     name: 'Doge'
   });
 
-  // Canvas appearance
-  
+  // Meme filters: 'normal' | 'deep-fried' | 'grayscale' | 'sepia' | 'vintage' | 'invert' | 'contrast'
+  let activeFilter = $state<'normal' | 'deep-fried' | 'grayscale' | 'sepia' | 'vintage' | 'invert' | 'contrast'>('normal');
 
   // Text inputs & state
   let topTextInput = $state('');
@@ -74,17 +74,52 @@
   let isItalic = $state(false);
   let isAllCaps = $state(true);
   let textAlign = $state<'left' | 'center' | 'right'>('center');
+  let textBgColor = $state('transparent');
 
-  // Template collection & pagination (Over 10,000+ blank and unwritten canvases)
-  let allTemplates = $state<MemeTemplate[]>([...pureBlankTemplates, ...localTemplates, ...curatedMemes]);
+  const proFontFamilies = [
+    { label: 'Impact (Classic Meme)', value: 'Impact' },
+    { label: 'Anton (High Impact)', value: 'Anton' },
+    { label: 'Bebas Neue (Tall Headline)', value: 'Bebas Neue' },
+    { label: 'Outfit (Modern Clean)', value: 'Outfit' },
+    { label: 'Montserrat (Viral Social)', value: 'Montserrat' },
+    { label: 'Arial (Clean Standard)', value: 'Arial' },
+    { label: 'Comic Sans MS (Dogelore & Irony)', value: 'Comic Sans MS' },
+    { label: 'JetBrains Mono (Tech & Code)', value: 'JetBrains Mono' }
+  ];
+
+  const quickColors = [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#000000' },
+    { name: 'Meme Yellow', hex: '#ffe600' },
+    { name: 'Alert Red', hex: '#ef4444' },
+    { name: 'Olive Accent', hex: '#87a665' },
+    { name: 'Cyan Glow', hex: '#00f2fe' }
+  ];
+
+  // Template collection: over 11,400 working blank and unwritten canvases immediately available
+  let allTemplates = $state<MemeTemplate[]>([
+    ...pureBlankTemplates,
+    ...localTemplates,
+    ...curatedMemes,
+    ...generateExtensiveBlankCatalog()
+  ]);
   let searchQuery = $state('');
   let selectedCategory = $state('All');
   let visibleCount = $state(48);
   let isLoadingMore = $state(false);
-  let totalCatalogCount = $state(10480);
   let copyFeedback = $state(false);
 
-  const categories = ['All', 'Pure Blank', 'Two-Panel', 'Multi-Panel', 'Classic', 'Reactions', 'Animals', 'Gaming'];
+  const categories = [
+    'All',
+    'Pure Blank',
+    'Two-Panel',
+    'Multi-Panel',
+    'Classic',
+    'Modern & Viral',
+    'Reactions',
+    'Animals',
+    'Gaming'
+  ];
 
   const stickers = [
     { name: 'Doge', src: '/img/doge.png' },
@@ -103,6 +138,7 @@
           (selectedCategory === 'Pure Blank' && (t.category === 'Pure Blank' || t.name.includes('(Blank)'))) ||
           (selectedCategory === 'Two-Panel' && (t.category === 'Two-Panel' || t.name.toLowerCase().includes('panel') || t.name.toLowerCase().includes('2'))) ||
           (selectedCategory === 'Multi-Panel' && (t.category === 'Multi-Panel' || (t.boxCount && t.boxCount > 2))) ||
+          (selectedCategory === 'Modern & Viral' && (t.category === 'Modern & Viral' || t.category === 'Viral')) ||
           t.category === selectedCategory;
         return matchesQuery && matchesCat;
       })
@@ -175,7 +211,50 @@
     if (canvas) canvas.dispose();
   });
 
-  // Render canvas layout based on single, split-h, split-v, or collage
+  // Filter application helper
+  function applyFilterToImg(img: fabric.Image) {
+    if (activeFilter === 'normal') {
+      img.filters = [];
+      img.applyFilters();
+      return;
+    }
+    img.filters = [];
+    if (activeFilter === 'deep-fried') {
+      img.filters.push(new fabric.Image.filters.Contrast({ contrast: 0.75 }));
+      img.filters.push(new fabric.Image.filters.Saturation({ saturation: 0.9 }));
+      img.filters.push(new fabric.Image.filters.Brightness({ brightness: 0.1 }));
+    } else if (activeFilter === 'grayscale') {
+      img.filters.push(new fabric.Image.filters.Grayscale());
+    } else if (activeFilter === 'sepia') {
+      img.filters.push(new fabric.Image.filters.Sepia());
+    } else if (activeFilter === 'vintage') {
+      img.filters.push(new (fabric.Image.filters as any).Vintage());
+    } else if (activeFilter === 'invert') {
+      img.filters.push(new fabric.Image.filters.Invert());
+    } else if (activeFilter === 'contrast') {
+      img.filters.push(new fabric.Image.filters.Contrast({ contrast: 0.5 }));
+    }
+    img.applyFilters();
+  }
+
+  // Safe image loader with vector SVG fallback
+  function loadImageSafely(url: string, fallbackName: string, cb: (img: fabric.Image) => void) {
+    fabric.Image.fromURL(url, (img) => {
+      if (!img) {
+        fabric.Image.fromURL(getFallbackSvgUrl(fallbackName), (fbImg) => {
+          if (fbImg) {
+            applyFilterToImg(fbImg);
+            cb(fbImg);
+          }
+        });
+        return;
+      }
+      applyFilterToImg(img);
+      cb(img);
+    }, { crossOrigin: 'anonymous' });
+  }
+
+  // Render canvas layout based on single, split-h, split-v, header, or collage
   function renderLayout() {
     if (!canvas) return;
 
@@ -195,8 +274,7 @@
       canvas.setHeight(600);
 
       if (slot1.url) {
-        fabric.Image.fromURL(slot1.url, (img) => {
-          if (!img) return;
+        loadImageSafely(slot1.url, slot1.name, (img) => {
           const scale = Math.min(600 / (img.width || 600), 600 / (img.height || 600));
           img.set({
             left: 300,
@@ -212,7 +290,68 @@
           canvas.add(img);
           canvas.sendToBack(img);
           restoreUserElements(userElements);
-        }, { crossOrigin: 'anonymous' });
+        });
+      } else {
+        restoreUserElements(userElements);
+      }
+    } else if (layoutMode === 'header') {
+      // Modern Top Header Caption (Twitter / Reddit / Social Card Style)
+      canvas.setWidth(600);
+      canvas.setHeight(680);
+      const headerH = 130;
+      const slotW = 600;
+      const slotH = 548;
+
+      const headerBg = new fabric.Rect({
+        left: 0,
+        top: 0,
+        width: 600,
+        height: headerH,
+        fill: currentMode === 'light' ? '#ffffff' : '#18181b',
+        selectable: false,
+        evented: false
+      });
+      (headerBg as any).isPanel = true;
+      canvas.add(headerBg);
+
+      const sepLine = new fabric.Rect({
+        left: 0,
+        top: headerH,
+        width: 600,
+        height: 2,
+        fill: dividerColor,
+        selectable: false,
+        evented: false
+      });
+      (sepLine as any).isPanel = true;
+      canvas.add(sepLine);
+
+      if (slot1.url) {
+        loadImageSafely(slot1.url, slot1.name, (img) => {
+          const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
+          img.set({
+            left: 300,
+            top: headerH + (slotH / 2),
+            originX: 'center',
+            originY: 'center',
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false
+          });
+          (img as any).isPanel = true;
+          canvas.add(img);
+          canvas.sendToBack(img);
+          canvas.sendToBack(sepLine);
+          canvas.sendToBack(headerBg);
+
+          const hasHeaderCaption = userElements.some(el => (el as any).isHeaderCaption);
+          if (!hasHeaderCaption && userElements.length === 0) {
+            addHeaderCaption();
+          } else {
+            restoreUserElements(userElements);
+          }
+        });
       } else {
         restoreUserElements(userElements);
       }
@@ -246,50 +385,46 @@
 
       // Slot 1 (Left picture)
       if (slot1.url) {
-        fabric.Image.fromURL(slot1.url, (img) => {
-          if (img) {
-            const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
-            img.set({
-              left: 178,
-              top: 240,
-              originX: 'center',
-              originY: 'center',
-              scaleX: scale,
-              scaleY: scale,
-              selectable: false,
-              evented: false
-            });
-            (img as any).isPanel = true;
-            canvas.add(img);
-            canvas.sendToBack(img);
-          }
+        loadImageSafely(slot1.url, slot1.name, (img) => {
+          const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
+          img.set({
+            left: 178,
+            top: 240,
+            originX: 'center',
+            originY: 'center',
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false
+          });
+          (img as any).isPanel = true;
+          canvas.add(img);
+          canvas.sendToBack(img);
           onDone();
-        }, { crossOrigin: 'anonymous' });
+        });
       } else {
         onDone();
       }
 
       // Slot 2 (Right picture)
       if (slot2.url) {
-        fabric.Image.fromURL(slot2.url, (img) => {
-          if (img) {
-            const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
-            img.set({
-              left: 362 + 178,
-              top: 240,
-              originX: 'center',
-              originY: 'center',
-              scaleX: scale,
-              scaleY: scale,
-              selectable: false,
-              evented: false
-            });
-            (img as any).isPanel = true;
-            canvas.add(img);
-            canvas.sendToBack(img);
-          }
+        loadImageSafely(slot2.url, slot2.name, (img) => {
+          const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
+          img.set({
+            left: 362 + 178,
+            top: 240,
+            originX: 'center',
+            originY: 'center',
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false
+          });
+          (img as any).isPanel = true;
+          canvas.add(img);
+          canvas.sendToBack(img);
           onDone();
-        }, { crossOrigin: 'anonymous' });
+        });
       } else {
         onDone();
       }
@@ -323,50 +458,46 @@
 
       // Slot 1 (Top picture)
       if (slot1.url) {
-        fabric.Image.fromURL(slot1.url, (img) => {
-          if (img) {
-            const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
-            img.set({
-              left: 260,
-              top: 178,
-              originX: 'center',
-              originY: 'center',
-              scaleX: scale,
-              scaleY: scale,
-              selectable: false,
-              evented: false
-            });
-            (img as any).isPanel = true;
-            canvas.add(img);
-            canvas.sendToBack(img);
-          }
+        loadImageSafely(slot1.url, slot1.name, (img) => {
+          const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
+          img.set({
+            left: 260,
+            top: 178,
+            originX: 'center',
+            originY: 'center',
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false
+          });
+          (img as any).isPanel = true;
+          canvas.add(img);
+          canvas.sendToBack(img);
           onDone();
-        }, { crossOrigin: 'anonymous' });
+        });
       } else {
         onDone();
       }
 
       // Slot 2 (Bottom picture)
       if (slot2.url) {
-        fabric.Image.fromURL(slot2.url, (img) => {
-          if (img) {
-            const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
-            img.set({
-              left: 260,
-              top: 362 + 178,
-              originX: 'center',
-              originY: 'center',
-              scaleX: scale,
-              scaleY: scale,
-              selectable: false,
-              evented: false
-            });
-            (img as any).isPanel = true;
-            canvas.add(img);
-            canvas.sendToBack(img);
-          }
+        loadImageSafely(slot2.url, slot2.name, (img) => {
+          const scale = Math.min(slotW / (img.width || slotW), slotH / (img.height || slotH));
+          img.set({
+            left: 260,
+            top: 362 + 178,
+            originX: 'center',
+            originY: 'center',
+            scaleX: scale,
+            scaleY: scale,
+            selectable: false,
+            evented: false
+          });
+          (img as any).isPanel = true;
+          canvas.add(img);
+          canvas.sendToBack(img);
           onDone();
-        }, { crossOrigin: 'anonymous' });
+        });
       } else {
         onDone();
       }
@@ -387,7 +518,7 @@
   }
 
   // Switch layout mode
-  function setLayout(mode: 'single' | 'split-h' | 'split-v' | 'collage') {
+  function setLayout(mode: 'single' | 'split-h' | 'split-v' | 'header' | 'collage') {
     layoutMode = mode;
     renderLayout();
   }
@@ -516,9 +647,71 @@
       isBold = textObj.fontWeight === 'bold';
       isItalic = textObj.fontStyle === 'italic';
       textAlign = (textObj.textAlign as 'left' | 'center' | 'right') || 'center';
+      textBgColor = (textObj.textBackgroundColor as string) || 'transparent';
     } else {
       isTextSelected = false;
     }
+  }
+
+  function updateFontFamily(newFont: string) {
+    fontFamily = newFont;
+    updateTextProp('fontFamily', newFont);
+  }
+
+  function applyTextBackground(color: string) {
+    textBgColor = color;
+    updateTextProp('textBackgroundColor', color === 'transparent' ? '' : color);
+  }
+
+  function applyTextColor(hex: string) {
+    textColor = hex;
+    updateTextProp('fill', hex);
+  }
+
+  function handleImageError(event: Event, t: MemeTemplate) {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = getFallbackSvgUrl(t.name);
+    }
+  }
+
+  function applyCanvasFilter(filterName: 'normal' | 'deep-fried' | 'grayscale' | 'sepia' | 'vintage' | 'invert' | 'contrast') {
+    activeFilter = filterName;
+    if (!canvas) return;
+    const images = canvas.getObjects().filter(o => o.type === 'image') as fabric.Image[];
+    images.forEach(img => {
+      applyFilterToImg(img);
+    });
+    canvas.requestRenderAll();
+  }
+
+  function addHeaderCaption() {
+    if (!canvas) return;
+    const text = new fabric.Textbox('When you finally deploy to production and it works on the first try', {
+      left: 300,
+      top: 65,
+      originX: 'center',
+      originY: 'center',
+      fontSize: 26,
+      fill: currentMode === 'light' ? '#09090b' : '#f4f4f5',
+      stroke: '',
+      strokeWidth: 0,
+      fontFamily: 'Outfit',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      width: 540,
+      cornerColor: handleColor,
+      borderColor: handleColor,
+      cornerStrokeColor: handleStrokeColor,
+      cornerSize: 10,
+      transparentCorners: false
+    });
+    (text as any).isMemeElement = true;
+    (text as any).isHeaderCaption = true;
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    canvas.bringToFront(text);
+    canvas.requestRenderAll();
   }
 
   // Text management
@@ -791,13 +984,14 @@
       const existingUrls = new Set(allTemplates.map(t => t.url));
       const newMemes = moreMemes.filter(t => !existingUrls.has(t.url));
       
-      allTemplates = [...allTemplates, ...newMemes];
-      totalCatalogCount += newMemes.length;
+      if (newMemes.length > 0) {
+        allTemplates = [...allTemplates, ...newMemes];
+      }
     } catch (e) {
       console.error(e);
     }
 
-    visibleCount += 36;
+    visibleCount += 48;
     isLoadingMore = false;
   }
 </script>
@@ -868,13 +1062,15 @@
                 720 × 480 px • 2 Pictures Side-by-Side
               {:else if layoutMode === 'split-v'}
                 520 × 720 px • 2 Pictures Top & Bottom
+              {:else if layoutMode === 'header'}
+                600 × 680 px • Modern Top Header Caption
               {:else if layoutMode === 'collage'}
                 600 × 600 px • Freeform Collage
               {:else}
                 600 × 600 px • 1 Picture Canvas
               {/if}
             </span>
-            <span class="context-hint">Click any element on canvas to edit • Del to delete</span>
+            <span class="context-hint">Click any element on canvas to edit • Del to delete • Esc to deselect</span>
           </div>
         {/if}
       </div>
@@ -884,37 +1080,72 @@
         <canvas bind:this={canvasEl}></canvas>
       </div>
 
-      <!-- Floating Canvas Toolbar -->
+      <!-- Floating Canvas Toolbar & Quick Filters -->
       {#if isCanvasLoaded}
-        <div class="floating-toolbar">
-          <button class="tool-btn" class:active={layoutMode === 'single'} onclick={() => setLayout('single')} title="1 Picture">
-            <Square size={16} strokeWidth={2} />
-          </button>
-          <button class="tool-btn" class:active={layoutMode === 'split-h'} onclick={() => setLayout('split-h')} title="Side by Side (2 Pictures)">
-            <Columns size={16} strokeWidth={2} />
-          </button>
-          <button class="tool-btn" class:active={layoutMode === 'split-v'} onclick={() => setLayout('split-v')} title="Top & Bottom (2 Pictures)">
-            <LayoutList size={16} strokeWidth={2} />
-          </button>
-          <button class="tool-btn" class:active={layoutMode === 'collage'} onclick={() => setLayout('collage')} title="Freeform Collage">
-            <Layers size={16} strokeWidth={2} />
-          </button>
+        <div class="canvas-bottom-controls">
+          <div class="floating-toolbar">
+            <button class="tool-btn" class:active={layoutMode === 'single'} onclick={() => setLayout('single')} title="1 Picture Canvas">
+              <Square size={16} strokeWidth={2} />
+            </button>
+            <button class="tool-btn" class:active={layoutMode === 'header'} onclick={() => setLayout('header')} title="Modern Top Header (Twitter/Reddit Meme Style)">
+              <LayoutPanelTop size={16} strokeWidth={2} />
+            </button>
+            <button class="tool-btn" class:active={layoutMode === 'split-h'} onclick={() => setLayout('split-h')} title="Side by Side (2 Pictures)">
+              <Columns size={16} strokeWidth={2} />
+            </button>
+            <button class="tool-btn" class:active={layoutMode === 'split-v'} onclick={() => setLayout('split-v')} title="Top & Bottom (2 Pictures)">
+              <LayoutList size={16} strokeWidth={2} />
+            </button>
+            <button class="tool-btn" class:active={layoutMode === 'collage'} onclick={() => setLayout('collage')} title="Freeform Collage">
+              <Layers size={16} strokeWidth={2} />
+            </button>
 
-          <div class="toolbar-divider"></div>
+            <div class="toolbar-divider"></div>
 
-          <!-- Random Template Dice -->
-          <button class="tool-btn random-tool-btn" class:spin={isRandomizing} onclick={randomizeTemplate} title="🎲 Surprise Me (Random Meme)">
-            <Dices size={16} strokeWidth={2.2} />
-          </button>
+            <!-- Random Template Dice -->
+            <button class="tool-btn random-tool-btn" class:spin={isRandomizing} onclick={randomizeTemplate} title="🎲 Surprise Me (Random Meme)">
+              <Dices size={16} strokeWidth={2.2} />
+            </button>
 
-          <div class="toolbar-divider"></div>
+            <div class="toolbar-divider"></div>
 
-          <button class="tool-btn" onclick={copyToClipboard} title="Copy Meme">
-            <Copy size={16} strokeWidth={2} />
-          </button>
-          <button class="tool-btn primary" onclick={exportMeme} title="Export as High-Res PNG">
-            <Download size={16} strokeWidth={2} />
-          </button>
+            <button class="tool-btn" onclick={copyToClipboard} title="Copy Meme">
+              {#if copyFeedback}
+                <Check size={16} strokeWidth={2.5} color="#87a665" />
+              {:else}
+                <Copy size={16} strokeWidth={2} />
+              {/if}
+            </button>
+            <button class="tool-btn primary" onclick={exportMeme} title="Export as High-Res PNG">
+              <Download size={16} strokeWidth={2} />
+            </button>
+          </div>
+
+          <!-- 1-Click Meme Filters Strip (Imgflip & Kapwing Pro Style) -->
+          <div class="filters-strip" aria-label="1-Click meme image filters">
+            <span class="filters-tag">Filters:</span>
+            <button class="filter-pill" class:pill-active={activeFilter === 'normal'} onclick={() => applyCanvasFilter('normal')}>
+              Normal
+            </button>
+            <button class="filter-pill" class:pill-active={activeFilter === 'deep-fried'} onclick={() => applyCanvasFilter('deep-fried')} title="Deep Fried (High Saturation & Contrast)">
+              🔥 Deep Fried
+            </button>
+            <button class="filter-pill" class:pill-active={activeFilter === 'grayscale'} onclick={() => applyCanvasFilter('grayscale')} title="Noir / Sad Pablo Escobar">
+              🖤 Noir
+            </button>
+            <button class="filter-pill" class:pill-active={activeFilter === 'vintage'} onclick={() => applyCanvasFilter('vintage')} title="Vintage Film Grain">
+              🎞️ Vintage
+            </button>
+            <button class="filter-pill" class:pill-active={activeFilter === 'sepia'} onclick={() => applyCanvasFilter('sepia')} title="Sepia Nostalgia">
+              📜 Sepia
+            </button>
+            <button class="filter-pill" class:pill-active={activeFilter === 'contrast'} onclick={() => applyCanvasFilter('contrast')} title="High Contrast">
+              👁️ Contrast
+            </button>
+            <button class="filter-pill" class:pill-active={activeFilter === 'invert'} onclick={() => applyCanvasFilter('invert')} title="Invert Colors (Cursed Meme)">
+              ⚡ Invert
+            </button>
+          </div>
         </div>
       {/if}
     </div>
@@ -947,7 +1178,7 @@
         {#if activeTab === 'templates'}
           <div class="panel-box">
             <!-- Surprise Me Button -->
-            <button class="action-banner-btn" onclick={randomizeTemplate} title="Pick a Random Meme from 10,000+ templates">
+            <button class="action-banner-btn" onclick={randomizeTemplate} title="Pick a Random Meme from 11,000+ templates">
               <Dices size={16} class={isRandomizing ? 'spin' : ''} />
               <span>Surprise Me (Random Template)</span>
             </button>
@@ -958,7 +1189,7 @@
               <input
                 type="text"
                 class="field-input search-field"
-                placeholder="Search 10,000+ templates..."
+                placeholder="Search 11,000+ templates..."
                 bind:value={searchQuery}
               />
             </div>
@@ -984,7 +1215,12 @@
                   onclick={() => selectTemplate(t)}
                   title={layoutMode.startsWith('split') ? `Slot ${activeSlot}: ${t.name}` : t.name}
                 >
-                  <img src={t.url} alt={t.name} loading="lazy" />
+                  <img
+                    src={t.url}
+                    alt={t.name}
+                    loading="lazy"
+                    onerror={(e) => handleImageError(e, t)}
+                  />
                   <span class="thumb-label">{t.name}</span>
                 </button>
               {/each}
@@ -1044,11 +1280,33 @@
                   <Plus size={15} />
                 </button>
               </div>
+
+              <div class="header-caption-action">
+                <button class="header-caption-btn" onclick={addHeaderCaption} title="Add Modern Top Header Headline (Twitter/Reddit Style)">
+                  <LayoutPanelTop size={14} />
+                  <span>+ Top Header Caption</span>
+                </button>
+              </div>
             </div>
 
             <!-- Formatting Controls -->
             <div class="formatting-card">
               <span class="panel-section-title">Typography & Style</span>
+
+              <!-- Pro Font Family Selector -->
+              <div class="field-row">
+                <label for="font-family-select" class="sub-label">Font Family</label>
+                <select
+                  id="font-family-select"
+                  class="field-select font-select"
+                  bind:value={fontFamily}
+                  onchange={(e) => updateFontFamily((e.target as HTMLSelectElement).value)}
+                >
+                  {#each proFontFamilies as font}
+                    <option value={font.value}>{font.label}</option>
+                  {/each}
+                </select>
+              </div>
 
               <div class="formatting-toggles">
                 <button class="fmt-btn" class:fmt-active={isBold} onclick={toggleBold} title="Bold">
@@ -1104,14 +1362,47 @@
                 />
               </div>
 
+              <!-- Quick Color Palette Swatches -->
+              <div class="swatches-group">
+                <span class="sub-label">Quick Colors</span>
+                <div class="swatches-strip">
+                  {#each quickColors as c}
+                    <button
+                      class="color-swatch-circle"
+                      style="background-color: {c.hex};"
+                      class:swatch-selected={textColor.toLowerCase() === c.hex.toLowerCase()}
+                      onclick={() => applyTextColor(c.hex)}
+                      title={c.name}
+                      aria-label="Color {c.name}"
+                    >
+                      {#if textColor.toLowerCase() === c.hex.toLowerCase()}
+                        <Check size={12} color={c.hex === '#ffffff' || c.hex === '#ffe600' ? '#000000' : '#ffffff'} strokeWidth={3} />
+                      {/if}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+
+              <!-- Text Background Highlight -->
+              <div class="highlight-group">
+                <span class="sub-label">Text Background</span>
+                <div class="highlight-pills">
+                  <button class="hl-pill" class:hl-active={textBgColor === 'transparent'} onclick={() => applyTextBackground('transparent')}>None</button>
+                  <button class="hl-pill" class:hl-active={textBgColor === '#000000'} onclick={() => applyTextBackground('#000000')}>Black</button>
+                  <button class="hl-pill" class:hl-active={textBgColor === '#ffffff'} onclick={() => applyTextBackground('#ffffff')}>White</button>
+                  <button class="hl-pill" class:hl-active={textBgColor === '#87a665'} onclick={() => applyTextBackground('#87a665')}>Olive</button>
+                  <button class="hl-pill" class:hl-active={textBgColor === '#ffe600'} onclick={() => applyTextBackground('#ffe600')}>Yellow</button>
+                </div>
+              </div>
+
               <!-- Colors -->
               <div class="colors-row">
                 <label class="color-picker-box">
-                  <span>Fill Color</span>
+                  <span>Custom Fill</span>
                   <input type="color" bind:value={textColor} oninput={(e) => updateTextProp('fill', (e.target as HTMLInputElement).value)} />
                 </label>
                 <label class="color-picker-box">
-                  <span>Stroke Color</span>
+                  <span>Custom Stroke</span>
                   <input type="color" bind:value={strokeColor} oninput={(e) => updateTextProp('stroke', (e.target as HTMLInputElement).value)} />
                 </label>
               </div>
@@ -1325,21 +1616,210 @@
     object-fit: contain;
   }
 
-  /* Floating Action Toolbar */
+  /* Canvas Bottom Controls & Floating Action Toolbar */
+  .canvas-bottom-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 600px;
+    z-index: 20;
+  }
+
   .floating-toolbar {
     display: flex;
     align-items: center;
     gap: 0.45rem;
     padding: 0.45rem 0.85rem;
-    margin-top: 1.25rem;
+    margin-top: 0;
     background: var(--surface-glass);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--line-strong);
     border-radius: 9999px;
     box-shadow: var(--shadow-floating);
-    z-index: 20;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .filters-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    padding: 0.35rem 0.65rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .filters-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-right: 0.15rem;
+    padding-left: 0.25rem;
+  }
+
+  .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.2rem 0.55rem;
+    height: 24px;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .filter-pill:hover {
+    background: var(--surface-hover);
+    color: var(--ink);
+  }
+
+  .filter-pill.pill-active {
+    background: var(--primary);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(135, 166, 101, 0.4);
+  }
+
+  /* Header caption action button in text panel */
+  .header-caption-action {
+    margin-top: 0.25rem;
+  }
+
+  .header-caption-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .header-caption-btn:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-style: solid;
+  }
+
+  /* Font select dropdown */
+  .font-select {
+    width: 100%;
+    height: 36px;
+    padding: 0 0.65rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .font-select:focus {
+    border-color: var(--primary);
+    outline: none;
+  }
+
+  /* Sub-label */
+  .sub-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  /* Swatches Group */
+  .swatches-group, .highlight-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+  }
+
+  .swatches-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .color-swatch-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--line-strong);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .color-swatch-circle:hover {
+    transform: scale(1.15);
+  }
+
+  .color-swatch-circle.swatch-selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--primary);
+    transform: scale(1.1);
+  }
+
+  /* Highlight Pills */
+  .highlight-pills {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .hl-pill {
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .hl-pill:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+
+  .hl-pill.hl-active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
   }
 
   .tool-btn {

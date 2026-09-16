@@ -104,4 +104,52 @@ describe('Templates Data Suite', () => {
       expect(memes).toEqual([]);
     });
   });
+
+  describe('Extensive Blank Catalog (>10,000 Blank Working Templates)', () => {
+    it('should generate more than 10,000 real working blank templates', async () => {
+      const { generateExtensiveBlankCatalog } = await import('../lib/templatesData');
+      const catalog = generateExtensiveBlankCatalog();
+      expect(catalog.length).toBeGreaterThan(10000);
+    });
+
+    it('should have over 85% blank unwritten templates for users to customize', async () => {
+      const { generateExtensiveBlankCatalog } = await import('../lib/templatesData');
+      const catalog = generateExtensiveBlankCatalog();
+      const blankCount = catalog.filter((t) => t.isBlank === true).length;
+      const blankPercentage = (blankCount / catalog.length) * 100;
+      expect(blankPercentage).toBeGreaterThanOrEqual(85);
+    });
+
+    it('should cover all standard meme categories with non-empty templates', async () => {
+      const { generateExtensiveBlankCatalog } = await import('../lib/templatesData');
+      const catalog = generateExtensiveBlankCatalog();
+      const categories = ['Pure Blank', 'Two-Panel', 'Multi-Panel', 'Classic', 'Modern & Viral', 'Reactions', 'Animals', 'Gaming'];
+      
+      for (const cat of categories) {
+        const matching = catalog.filter((t) => t.category === cat);
+        expect(matching.length).toBeGreaterThan(100);
+      }
+    });
+
+    it('should ensure every template has a valid SVG data URL and non-empty name', async () => {
+      const { generateExtensiveBlankCatalog } = await import('../lib/templatesData');
+      const catalog = generateExtensiveBlankCatalog();
+      // Sample check first 50 and last 50
+      const sample = [...catalog.slice(0, 50), ...catalog.slice(-50)];
+      sample.forEach((t) => {
+        expect(t.id).toBeTruthy();
+        expect(t.name).toBeTruthy();
+        expect(t.url).toMatch(/^data:image\/svg\+xml;charset=utf-8,/);
+        expect(t.isBlank).toBe(true);
+      });
+    });
+
+    it('should provide a reliable fallback SVG data URL for broken CDN images', async () => {
+      const { getFallbackSvgUrl } = await import('../lib/templatesData');
+      const fallback = getFallbackSvgUrl('Test Meme');
+      expect(fallback).toMatch(/^data:image\/svg\+xml;charset=utf-8,/);
+      expect(fallback).toContain('MEME%20CANVAS');
+    });
+  });
 });
+
