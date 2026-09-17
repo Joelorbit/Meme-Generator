@@ -1,6 +1,4 @@
-@import "tailwindcss";
-
-@theme inline {
+:root {
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
