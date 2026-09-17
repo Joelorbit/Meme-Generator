@@ -534,6 +534,57 @@
     overflow: hidden;
   }
 
+  /* Responsive Mobile Layout (Phones & Tablets) */
+  @media (max-width: 900px) {
+    .app-shell {
+      height: auto;
+      min-height: 100vh;
+      max-height: none;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .app-shell.is-landing {
+      height: auto;
+      min-height: 100vh;
+      max-height: none;
+      overflow-y: auto;
+    }
+
+    .nav-inner {
+      padding: 0 0.75rem;
+    }
+
+    .meme-studio-view {
+      height: auto;
+      min-height: calc(100vh - 44px);
+      max-height: none;
+      overflow: visible;
+    }
+
+    .landing-viewport {
+      height: auto;
+      min-height: calc(100vh - 44px - 48px);
+      padding: 1.5rem 1rem;
+      overflow-y: visible;
+    }
+
+    .landing-title {
+      font-size: clamp(2rem, 9vw, 3rem);
+    }
+
+    .landing-btns {
+      flex-direction: column;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .btn-primary, .btn-secondary {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
   /* Footer (Simple & Centered) */
   .app-foot {
     flex-shrink: 0;

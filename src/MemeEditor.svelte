@@ -184,12 +184,21 @@
     }, 100);
 
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', handleResize);
   });
 
   onDestroy(() => {
     window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('resize', handleResize);
     if (canvas) canvas.dispose();
   });
+
+  function handleResize() {
+    if (canvas) {
+      canvas.calcOffset();
+      canvas.requestRenderAll();
+    }
+  }
 
   function loadImageSafely(url: string, fallbackName: string, cb: (img: fabric.Image) => void) {
     fabric.Image.fromURL(url, (img) => {
@@ -1175,13 +1184,6 @@
     overflow: hidden;
   }
 
-  @media (max-width: 900px) {
-    .studio-layout {
-      flex-direction: column;
-      overflow-y: auto;
-    }
-  }
-
   /* Center Canvas Panel */
   .canvas-panel {
     flex: 1;
@@ -2096,5 +2098,131 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* ===================================================
+     RESPONSIVE MOBILE & TABLET LAYOUT (<= 900px)
+     =================================================== */
+  @media (max-width: 900px) {
+    .studio-viewport {
+      height: auto;
+      min-height: calc(100vh - 44px);
+      max-height: none;
+      overflow: visible;
+      padding: 0.5rem 0.5rem 2.5rem;
+      align-items: flex-start;
+    }
+
+    .studio-layout {
+      flex-direction: column;
+      height: auto;
+      max-width: 100%;
+      overflow: visible;
+      gap: 1rem;
+    }
+
+    /* Canvas Section - Fully visible, responsive width, non-zero height */
+    .canvas-panel {
+      width: 100%;
+      height: auto;
+      flex: none;
+      overflow: visible;
+      gap: 0.4rem;
+    }
+
+    .ctx-bar {
+      width: 100%;
+      max-width: min(calc(100vw - 1rem), 420px);
+      height: auto;
+      min-height: 28px;
+      padding: 0.2rem 0.4rem;
+      font-size: 0.65rem;
+    }
+
+    .ctx-left {
+      flex-wrap: wrap;
+      gap: 0.2rem;
+    }
+
+    .ctx-btn {
+      height: 20px;
+      padding: 0 0.3rem;
+      font-size: 0.62rem;
+    }
+
+    .canvas-frame {
+      width: 100%;
+      max-width: min(calc(100vw - 1rem), 420px);
+      height: auto;
+      max-height: none;
+      aspect-ratio: 1 / 1;
+    }
+
+    :global(.canvas-container) {
+      width: 100% !important;
+      height: auto !important;
+      aspect-ratio: 1 / 1 !important;
+      max-width: 100% !important;
+    }
+
+    :global(.canvas-container canvas) {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+    }
+
+    .toolbar {
+      width: auto;
+      max-width: min(calc(100vw - 1rem), 420px);
+      padding: 0.25rem 0.4rem;
+      gap: 0.2rem;
+    }
+
+    .tb {
+      width: 28px;
+      height: 28px;
+    }
+
+    .tb-sep {
+      height: 14px;
+      margin: 0 0.05rem;
+    }
+
+    /* Sidebar Section - Full width sheet below canvas */
+    .sidebar-panel {
+      width: 100%;
+      min-width: 0;
+      max-width: min(calc(100vw - 1rem), 480px);
+      height: auto;
+      max-height: none;
+      overflow: visible;
+      margin: 0 auto;
+    }
+
+    .tabs {
+      height: 38px;
+    }
+
+    .tab {
+      font-size: 0.68rem;
+      padding: 0 0.2rem;
+      gap: 0.2rem;
+    }
+
+    .panel-content {
+      max-height: 480px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.6rem;
+    }
+
+    .templates-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.4rem;
+    }
+
+    .tpl-card {
+      height: 110px;
+    }
   }
 </style>
