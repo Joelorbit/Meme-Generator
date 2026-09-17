@@ -35,6 +35,10 @@
   let canvas: fabric.Canvas;
   let isCanvasLoaded = $state(false);
   let canvasEl: HTMLCanvasElement;
+  let canvasFrameEl = $state<HTMLDivElement | null>(null);
+  let canvasPanelEl = $state<HTMLElement | null>(null);
+  let baseCanvasWidth = 500;
+  let baseCanvasHeight = 500;
 
   let {
     currentMode = 'dark',
@@ -183,21 +187,66 @@
       }
     }, 100);
 
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        updateResponsiveCanvasSize();
+      });
+      if (canvasPanelEl) ro.observe(canvasPanelEl);
+      if (canvasFrameEl) ro.observe(canvasFrameEl);
+    }
+
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', updateResponsiveCanvasSize);
+    window.addEventListener('orientationchange', updateResponsiveCanvasSize);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    requestAnimationFrame(() => {
+      updateResponsiveCanvasSize();
+    });
   });
 
   onDestroy(() => {
     window.removeEventListener('keydown', handleKeyDown);
-    window.removeEventListener('resize', handleResize);
+    window.removeEventListener('resize', updateResponsiveCanvasSize);
+    window.removeEventListener('orientationchange', updateResponsiveCanvasSize);
+    window.removeEventListener('scroll', handleScroll);
     if (canvas) canvas.dispose();
   });
 
-  function handleResize() {
+  function handleScroll() {
     if (canvas) {
       canvas.calcOffset();
-      canvas.requestRenderAll();
     }
+  }
+
+  function updateResponsiveCanvasSize() {
+    if (!canvas || !canvasFrameEl) return;
+    const isMobile = window.innerWidth <= 900;
+    let targetWidth: number;
+    let targetHeight: number;
+
+    if (isMobile) {
+      const maxW = Math.max(260, Math.min(window.innerWidth - 20, 520));
+      const maxH = Math.max(260, Math.round(window.innerHeight * 0.46));
+      const scale = Math.min(1, maxW / baseCanvasWidth, maxH / baseCanvasHeight);
+      targetWidth = Math.round(baseCanvasWidth * scale);
+      targetHeight = Math.round(baseCanvasHeight * scale);
+    } else {
+      const maxW = canvasPanelEl ? Math.max(280, canvasPanelEl.clientWidth - 32) : 560;
+      const maxH = Math.max(280, window.innerHeight - 150);
+      const scale = Math.min(1, maxW / baseCanvasWidth, maxH / baseCanvasHeight);
+      targetWidth = Math.round(baseCanvasWidth * scale);
+      targetHeight = Math.round(baseCanvasHeight * scale);
+    }
+
+    canvas.setDimensions({
+      width: `${targetWidth}px`,
+      height: `${targetHeight}px`
+    }, { cssOnly: true });
+
+    canvas.calcOffset();
+    canvas.requestRenderAll();
   }
 
   function loadImageSafely(url: string, fallbackName: string, cb: (img: fabric.Image) => void) {
@@ -222,6 +271,8 @@
     canvas.backgroundColor = canvasBgColor;
 
     if (layoutMode === 'single') {
+      baseCanvasWidth = 500;
+      baseCanvasHeight = 500;
       canvas.setWidth(500);
       canvas.setHeight(500);
       if (slot1.url) {
@@ -237,6 +288,8 @@
         restoreUserElements(userElements);
       }
     } else if (layoutMode === 'header') {
+      baseCanvasWidth = 500;
+      baseCanvasHeight = 560;
       canvas.setWidth(500);
       canvas.setHeight(560);
       const headerH = 110;
@@ -289,6 +342,8 @@
         restoreUserElements(userElements);
       }
     } else if (layoutMode === 'split-h') {
+      baseCanvasWidth = 600;
+      baseCanvasHeight = 400;
       canvas.setWidth(600);
       canvas.setHeight(400);
       const divider = new fabric.Rect({
@@ -327,6 +382,8 @@
         });
       } else { onDone(); }
     } else if (layoutMode === 'split-v') {
+      baseCanvasWidth = 420;
+      baseCanvasHeight = 560;
       canvas.setWidth(420);
       canvas.setHeight(560);
       const divider = new fabric.Rect({
@@ -365,10 +422,13 @@
         });
       } else { onDone(); }
     } else {
+      baseCanvasWidth = 500;
+      baseCanvasHeight = 500;
       canvas.setWidth(500);
       canvas.setHeight(500);
       restoreUserElements(userElements);
     }
+    updateResponsiveCanvasSize();
   }
 
   function restoreUserElements(elements: fabric.Object[]) {
@@ -377,6 +437,7 @@
       canvas.bringToFront(el);
     });
     canvas.requestRenderAll();
+    updateResponsiveCanvasSize();
   }
 
   function setLayout(mode: typeof layoutMode) {
@@ -801,7 +862,7 @@
 <div class="studio-viewport">
   <div class="studio-layout">
     <!-- Center Canvas Area -->
-    <section class="canvas-panel">
+    <section class="canvas-panel" bind:this={canvasPanelEl}>
       <!-- Context Notification Bar -->
       <div class="ctx-bar" class:ctx-active={isObjectSelected}>
         {#if isObjectSelected}
@@ -826,7 +887,7 @@
       </div>
 
       <!-- Canvas Frame -->
-      <div class="canvas-frame">
+      <div class="canvas-frame" bind:this={canvasFrameEl}>
         <canvas bind:this={canvasEl}></canvas>
       </div>
 
@@ -860,7 +921,7 @@
           class:on={activeTab === 'templates'}
           onclick={() => (activeTab = 'templates')}
         >
-          <Sparkles size={12} />
+          <Sparkles size={13} />
           <span>Templates</span>
         </button>
         <button
@@ -871,7 +932,7 @@
           class:on={activeTab === 'text'}
           onclick={() => (activeTab = 'text')}
         >
-          <Type size={12} />
+          <Type size={13} />
           <span>Captions</span>
         </button>
         <button
@@ -882,8 +943,8 @@
           class:on={activeTab === 'dual'}
           onclick={() => (activeTab = 'dual')}
         >
-          <Columns size={12} />
-          <span>2-Pics</span>
+          <Columns size={13} />
+          <span>2-Pictures</span>
         </button>
         <button
           type="button"
@@ -893,7 +954,7 @@
           class:on={activeTab === 'stickers'}
           onclick={() => (activeTab = 'stickers')}
         >
-          <Sticker size={12} />
+          <Sticker size={13} />
           <span>Stickers</span>
         </button>
       </div>
@@ -1304,26 +1365,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    max-height: calc(100vh - 130px);
-    max-width: 100%;
     border-radius: var(--radius-md);
     background: var(--surface);
     border: 1px solid var(--line);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
     overflow: hidden;
+    line-height: 0;
   }
 
   :global(.canvas-container) {
-    max-width: 100% !important;
-    max-height: calc(100vh - 130px) !important;
+    margin: 0 auto;
     border-radius: var(--radius-md);
     overflow: hidden;
   }
 
   :global(.canvas-container canvas) {
-    max-width: 100% !important;
-    max-height: calc(100vh - 130px) !important;
-    object-fit: contain;
+    display: block;
   }
 
   /* Toolbar */
@@ -1351,6 +1408,7 @@
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
+    touch-action: manipulation;
   }
 
   .tb:hover {
@@ -1399,7 +1457,8 @@
   .tabs {
     flex-shrink: 0;
     display: flex;
-    height: 40px;
+    height: 42px;
+    min-height: 42px;
     border-bottom: 1px solid var(--line);
     background: var(--surface-elevated);
     position: relative;
@@ -1411,18 +1470,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3rem;
+    gap: 0.35rem;
     border: none;
     background: transparent;
     color: var(--text-muted);
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 600;
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.15s ease;
     user-select: none;
+    touch-action: manipulation;
     padding: 0 0.4rem;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .tab:hover {
@@ -1437,7 +1498,7 @@
     font-weight: 700;
   }
 
-  .tab :global(svg) {
+  .tab * {
     pointer-events: none;
   }
 
@@ -2108,9 +2169,10 @@
       height: auto;
       min-height: calc(100vh - 44px);
       max-height: none;
-      overflow: visible;
-      padding: 0.5rem 0.5rem 2.5rem;
+      overflow-y: auto;
+      padding: 0.5rem 0.5rem 3rem;
       align-items: flex-start;
+      -webkit-overflow-scrolling: touch;
     }
 
     .studio-layout {
@@ -2118,104 +2180,118 @@
       height: auto;
       max-width: 100%;
       overflow: visible;
-      gap: 1rem;
+      gap: 0.85rem;
     }
 
-    /* Canvas Section - Fully visible, responsive width, non-zero height */
+    /* Canvas Section */
     .canvas-panel {
       width: 100%;
       height: auto;
       flex: none;
       overflow: visible;
-      gap: 0.4rem;
+      gap: 0.45rem;
+      align-items: center;
     }
 
     .ctx-bar {
       width: 100%;
-      max-width: min(calc(100vw - 1rem), 420px);
+      max-width: min(calc(100vw - 1rem), 520px);
       height: auto;
-      min-height: 28px;
-      padding: 0.2rem 0.4rem;
-      font-size: 0.65rem;
+      min-height: 30px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.68rem;
     }
 
     .ctx-left {
       flex-wrap: wrap;
-      gap: 0.2rem;
+      gap: 0.25rem;
     }
 
     .ctx-btn {
-      height: 20px;
-      padding: 0 0.3rem;
-      font-size: 0.62rem;
+      height: 22px;
+      padding: 0 0.4rem;
+      font-size: 0.65rem;
+      touch-action: manipulation;
     }
 
     .canvas-frame {
-      width: 100%;
-      max-width: min(calc(100vw - 1rem), 420px);
+      width: auto;
+      max-width: 100%;
       height: auto;
-      max-height: none;
-      aspect-ratio: 1 / 1;
-    }
-
-    :global(.canvas-container) {
-      width: 100% !important;
-      height: auto !important;
-      aspect-ratio: 1 / 1 !important;
-      max-width: 100% !important;
-    }
-
-    :global(.canvas-container canvas) {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain !important;
+      margin: 0 auto;
     }
 
     .toolbar {
       width: auto;
-      max-width: min(calc(100vw - 1rem), 420px);
-      padding: 0.25rem 0.4rem;
-      gap: 0.2rem;
+      max-width: min(calc(100vw - 1rem), 520px);
+      height: 40px;
+      padding: 0.25rem 0.5rem;
+      gap: 0.35rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
 
     .tb {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      touch-action: manipulation;
     }
 
     .tb-sep {
-      height: 14px;
-      margin: 0 0.05rem;
+      height: 16px;
+      margin: 0 0.1rem;
+      flex-shrink: 0;
     }
 
-    /* Sidebar Section - Full width sheet below canvas */
+    /* Sidebar Section */
     .sidebar-panel {
       width: 100%;
       min-width: 0;
-      max-width: min(calc(100vw - 1rem), 480px);
+      max-width: min(calc(100vw - 1rem), 520px);
       height: auto;
       max-height: none;
       overflow: visible;
       margin: 0 auto;
+      border-radius: var(--radius-md);
     }
 
     .tabs {
-      height: 38px;
+      height: 42px;
+      min-height: 42px;
     }
 
     .tab {
-      font-size: 0.68rem;
-      padding: 0 0.2rem;
-      gap: 0.2rem;
+      font-size: 0.72rem;
+      padding: 0 0.3rem;
+      gap: 0.25rem;
     }
 
     .panel-content {
-      max-height: 480px;
+      max-height: 520px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 0.6rem;
+      padding: 0.75rem;
+    }
+  }
+
+  @media (min-width: 601px) and (max-width: 900px) {
+    .sidebar-panel {
+      max-width: 600px;
     }
 
+    .templates-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .tpl-card {
+      height: 120px;
+    }
+  }
+
+  @media (max-width: 600px) {
     .templates-grid {
       grid-template-columns: repeat(2, 1fr);
       gap: 0.4rem;

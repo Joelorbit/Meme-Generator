@@ -7,7 +7,7 @@
     <title>MemeStudio — High-Velocity Meme Forge</title>
     <meta name="description" content="The fastest way to slap text on cursed images, cook dual-panel brainrot, and farm internet points. 100% free, client-side privacy, 0ms lag canvas." />
     <meta name="keywords" content="meme generator, meme maker, memes, blank meme templates, fabric.js, svelte 5, dual panel meme" />
-    <meta name="author" content="eyuel.me" />
+    <meta name="author" content="Joelorbit" />
 
     <!-- OpenGraph / Social Meta Tags -->
     <meta property="og:title" content="MemeStudio — High-Velocity Meme Forge" />
@@ -33,7 +33,7 @@
     <script>
       (() => {
         try {
-          const savedMode = localStorage.getItem('eyu-mode');
+          const savedMode = localStorage.getItem('memestudio-mode') || localStorage.getItem('eyu-mode');
           const systemMode = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
           const mode = savedMode === 'light' || savedMode === 'dark' ? savedMode : systemMode;
           document.documentElement.dataset.theme = 'default';

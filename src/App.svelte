@@ -210,7 +210,7 @@
     <!-- Simple Clean Footer (Landing only) -->
     <footer class="app-foot">
       <div class="foot-inner">
-        <span>Crafted by <a href="https://eyuel.me" target="_blank" rel="noopener noreferrer" class="foot-author">eyuel.me</a></span>
+        <span>Crafted with ❤️ • <a href="https://github.com/Joelorbit/Meme-Generator" target="_blank" rel="noopener noreferrer" class="foot-author">GitHub Repository</a></span>
       </div>
     </footer>
 

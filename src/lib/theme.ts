@@ -3,9 +3,9 @@ export type ThemeId = string;
 
 export const DEFAULT_THEME: ThemeId = 'default';
 export const DEFAULT_LIGHT_THEME: ThemeId = 'default';
-export const THEME_STORAGE_KEY = 'eyu-theme';
-export const MOTION_STORAGE_KEY = 'eyu-motion';
-export const MODE_STORAGE_KEY = 'eyu-mode';
+export const THEME_STORAGE_KEY = 'memestudio-theme';
+export const MOTION_STORAGE_KEY = 'memestudio-motion';
+export const MODE_STORAGE_KEY = 'memestudio-mode';
 
 function canUseDOM() {
   return typeof window !== 'undefined' && typeof document !== 'undefined';

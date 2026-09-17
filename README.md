@@ -81,6 +81,6 @@ MemeStudio includes local curated classics and feeds from live meme APIs:
 
 <div align="center">
 
-Crafted by [eyuel.me](https://eyuel.me)
+Crafted with ❤️ by [Joelorbit](https://github.com/Joelorbit/Meme-Generator) • Open source on [GitHub](https://github.com/Joelorbit/Meme-Generator)
 
 </div>
