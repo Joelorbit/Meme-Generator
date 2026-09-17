@@ -14,10 +14,7 @@
     Sparkles
   } from '@lucide/svelte';
   import {
-    pureBlankTemplates,
-    localTemplates,
-    curatedMemes,
-    fetchAllInitialBlankTemplates,
+    allImageTemplates,
     type MemeTemplate
   } from './lib/templatesData';
 
@@ -27,8 +24,8 @@
   let selectedTemplate = $state<MemeTemplate | null>(null);
   let isSurpriseRolling = $state(false);
 
-  // Blank templates cache for instant 1-click surprise
-  let allTemplatesCache = $state<MemeTemplate[]>([...pureBlankTemplates, ...localTemplates, ...curatedMemes]);
+  // Templates cache for instant 1-click surprise
+  let allTemplatesCache = $state<MemeTemplate[]>([...allImageTemplates]);
 
   function syncRoute() {
     const hash = window.location.hash.toLowerCase();
@@ -48,13 +45,8 @@
     syncRoute();
     window.addEventListener('hashchange', syncRoute);
 
-    // Pre-cache blank templates for surprise me
-    const blanks = await fetchAllInitialBlankTemplates();
-    if (blanks.length > 0) {
-      const existingUrls = new Set(allTemplatesCache.map((t) => t.url));
-      const newItems = blanks.filter((t) => !existingUrls.has(t.url));
-      allTemplatesCache = [...allTemplatesCache, ...newItems];
-    }
+    // Templates are immediately ready
+    allTemplatesCache = [...allImageTemplates];
   });
 
   function handleThemeToggle() {
@@ -179,12 +171,12 @@
             <ArrowRight size={15} />
           </button>
 
-          <button class="btn-secondary" onclick={() => navigateTo('/meme')} title="Browse 10,000+ Blank Meme Canvases">
+          <button class="btn-secondary" onclick={() => navigateTo('/meme')} title="Browse 1,300+ Real Meme Canvases">
             <Sparkles size={15} class="icon-accent" />
-            <span>10,000+ Templates</span>
+            <span>1,300+ Templates</span>
           </button>
 
-          <button class="btn-secondary" onclick={handleSurpriseMe} title="Surprise Me with a Blank Template">
+          <button class="btn-secondary" onclick={handleSurpriseMe} title="Surprise Me with a Random Meme">
             <Dices size={15} class={isSurpriseRolling ? 'spin' : ''} />
             <span>1-Click Surprise Me</span>
           </button>
@@ -215,19 +207,19 @@
       </div>
     </main>
 
+    <!-- Simple Clean Footer (Landing only) -->
+    <footer class="app-foot">
+      <div class="foot-inner">
+        <span>Crafted by <a href="https://eyuel.me" target="_blank" rel="noopener noreferrer" class="foot-author">eyuel.me</a></span>
+      </div>
+    </footer>
+
   <!-- ROUTE 2: THE MEME GENERATING & CANVAS EDITING PAGE -->
   {:else}
     <main class="meme-studio-view">
       <MemeEditor currentMode={activeMode} initialTemplate={selectedTemplate} />
     </main>
   {/if}
-
-  <!-- Simple Clean Footer (No Glow) -->
-  <footer class="app-foot">
-    <div class="foot-inner">
-      <span>Crafted by <a href="https://eyuel.me" target="_blank" rel="noopener noreferrer" class="foot-author">eyuel.me</a></span>
-    </div>
-  </footer>
 </div>
 
 <style>
@@ -244,12 +236,14 @@
     overflow-x: hidden;
   }
 
-  /* Root Container */
+  /* Root Container - 100% compact single-page */
   .app-shell {
-    min-height: 100vh;
+    height: 100vh;
+    max-height: 100vh;
     display: flex;
     flex-direction: column;
     background-color: var(--bg);
+    overflow: hidden;
   }
 
   /* Non-scrollable single-page viewport when on landing page */
@@ -262,7 +256,7 @@
   /* Header Navbar */
   .app-nav {
     flex-shrink: 0;
-    height: 52px;
+    height: 44px;
     border-bottom: 1px solid var(--line);
     background: var(--surface);
     display: flex;
@@ -532,8 +526,12 @@
   /* Meme Studio View */
   .meme-studio-view {
     flex: 1;
+    min-height: 0;
+    height: calc(100vh - 44px);
+    max-height: calc(100vh - 44px);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   /* Footer (Simple & Centered) */
