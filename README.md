@@ -38,8 +38,8 @@ The fastest, zero-lag browser meme forge. Slap text on cursed images, cook dual-
 
 ```bash
 # Clone the repository
-git clone https://github.com/Joelorbit/community-meme-maker.git
-cd community-meme-maker
+git clone https://github.com/Joelorbit/Meme-Generator.git
+cd Meme-Generator
 
 # Install dependencies
 npm install

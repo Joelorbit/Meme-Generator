@@ -102,11 +102,11 @@
         {/if}
 
         <a
-          href="https://github.com/Joelorbit/community-meme-maker"
+          href="https://github.com/Joelorbit/Meme-Generator"
           target="_blank"
           rel="noopener noreferrer"
           class="nav-icon-btn"
-          title="GitHub"
+          title="GitHub Repository"
         >
           <svg
             viewBox="0 0 24 24"
